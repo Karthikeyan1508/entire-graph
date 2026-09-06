@@ -2,7 +2,8 @@
 
 **Air traffic control for coding agents.** BTW Buildathon 2026 · Track 02 (Graph Intelligence) · solo, ~3h05m of coding.
 
-Authoritative plan: `TOWER_V2_NO_HOMEWORK.md`. It overrides `TOWER_BUILD_SPEC.md` wherever they disagree.
+Authoritative plan: this file, plus `STATE.md` for current state and `NOTES.md` for the real
+`entire` CLI shapes captured on this machine.
 
 ---
 
@@ -65,14 +66,13 @@ The vendored tree-sitter grammar C (`parser.c`, `scanner.c` — some blobs 30–
 by the repo's own `.graphignore`, added upstream after those files produced `E_FILE_TOO_LARGE` /
 `E_PARSE_ERROR` and a "degraded" graph. We inherit that fix. Do not remove it.
 
-**Stale in the spec:** `TOWER_BUILD_SPEC.md` §3.1 and §5.2 use `gorilla/mux` — for the `symbol_id`
-example and for the co-change calibration that produces the 0.87 pitch number. Both references are
-now wrong: the prior must be calibrated against *this* repo's history instead. The formula, the
-weights and the thresholds are unchanged.
+**Calibration note:** the original design sketch calibrated the prior against `gorilla/mux`, which
+is not this repository. The prior is therefore computed from *this* repo's own history instead. The
+formula, the weights and the thresholds are unchanged.
 
 ## Rejected options (and why)
 
-- **FastAPI daemon on :8765** (spec §7) — deleted. ~45 min of work and the single most likely demo
+- **A FastAPI daemon on :8765** — deleted. ~45 min of work and the single most likely demo
   failure ("the daemon wasn't running"). Hooks talk to SQLite directly; WAL handles concurrency.
 - **BFS + adjacency map + `path_between`** — deleted. `impact_set(depth=2)` already returns hop counts.
   Distance becomes a SQLite lookup, not a traversal. Store `via` so the deny message still prints a chain.
@@ -90,10 +90,10 @@ weights and the thresholds are unchanged.
 
 ## Open risks
 
-1. **Windows hook invocation.** The spec's `python3 $CLAUDE_PROJECT_DIR/hooks/x.py` does not run here.
+1. **Windows hook invocation.** A POSIX-style `python3 $CLAUDE_PROJECT_DIR/hooks/x.py` does not run here.
    Hooks must use `D:\tower\.venv\Scripts\python.exe` with JSON-escaped backslashes, and every path
    touching the profile directory must be quoted. Highest-probability silent failure.
-2. **Unknown Entire CLI output shapes.** Mitigated by recon-first and the adapter seam; the spec's
+2. **Unknown Entire CLI output shapes.** Mitigated by recon-first and the adapter seam; any
    command syntax is treated as a guess until `NOTES.md` says otherwise.
 3. **Lease quality.** If `graph search` returns weak seeds the lease is wrong, and TOWER either denies
    nothing or denies everything. Cap 300 symbols; inspect the first real lease by hand.

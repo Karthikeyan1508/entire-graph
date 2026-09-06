@@ -108,10 +108,10 @@ all resolves to `cleared`** — a hook that wedges the user's agent is worse tha
 
 ### Evidence 1 — recon (`scripts/recon.sh`, `NOTES.md`, `fixtures/`, commit `ea248e2c`)
 
-We assumed nothing about the CLI. Every command shape in the original spec was a guess, and **every
-one of them was wrong**:
+We assumed nothing about the CLI. Every command shape we had guessed up front was wrong, and we
+found that out before writing a parser:
 
-| Function | Spec guessed | Reality |
+| Function | We guessed | Reality |
 |---|---|---|
 | `capabilities` | `graph capabilities` | needs `--json` |
 | `search` | `--query --format json --top-k` | correct, plus `--repo .` |
@@ -121,7 +121,7 @@ one of them was wrong**:
 Three findings changed the design:
 
 1. **Symbol identity already exists.** Every endpoint returns ids like
-   `local/entire-graph:Go:internal/sem/search.go:function:SearchRepository`. The spec's invented
+   `local/entire-graph:Go:internal/sem/search.go:function:SearchRepository`. Our planned
    `path::name` scheme was redundant; leases are keyed on Entire's own id.
 2. **Hop distance lives at `callers.entries[].depth`**, not a top-level field. `callees` and
    `type_consumers` are always depth 1. This is what makes distance a SQLite lookup rather than a graph
@@ -284,7 +284,7 @@ cautious, never less — and an existing database is migrated in place rather th
 | — | `71ab979e` | `tower/core.py` — store, adapter, scoring; 9 tests green with no Entire and no Databricks |
 | — | `f5f5aa17` | Hooks wired; a CUT 3 violation found and fixed (`check()` was shelling out to `entire checkpoint list` on the hot path) |
 | — | `1e248467` | The bash-escaping fix, plus the counterfactual evidence it accidentally produced |
-| **CP2** | `4a671f46` (tag `pre-noon-stable`) | The live cross-session deny, proven and captured: squawk row, screenshot, 9/9 tests. Also records the four things that had to be fixed to get there, none of which the spec predicted |
+| **CP2** | `4a671f46` (tag `pre-noon-stable`) | The live cross-session deny, proven and captured: squawk row, screenshot, 9/9 tests. Also records the four things that had to be fixed to get there, none of which we had anticipated |
 | **CP3** | `6afd3a07` | The Curveball response: evidence tiers threaded from adapter to deny message, with the reasoning for why partial evidence tightens rather than loosens the decision. 16 tests, the original 9 untouched |
 | **CP4** | *this commit* | Final state: Databricks round trip closed (the prior is live in the score — a real deny now reads 0.88, not 0.65), `tower/sync.py` draining operational data to Delta, the radar with an airspace graph that renders evidence tiers, and all three graph evidences filed |
 
@@ -403,11 +403,11 @@ that changes the product's behaviour was already finished and pushed.
    process, which we removed on purpose as the most likely thing to be broken during a demo. The
    original spec's real budget — 800 ms end to end — is met.
 
-3. **The co-change prior at distance 0 was broken, and is now fixed.** Spec §5.2 pairs the target's
-   file with `file(other core symbol)` — but at hops 0 those are the *same file*, so the lookup
+3. **The co-change prior at distance 0 was broken, and is now fixed.** The original rule paired the
+   target's file with the other core symbol's file — but at hops 0 those are the *same file*, so the lookup
    degenerated to a self-pair that co-change over distinct pairs can never contain. The prior was
-   therefore always 0.0 exactly where the score matters most. `tower/prior.py::best_prior()` reads
-   §5.2 as intended: a lease spans several files, so score the target against the other **distinct**
+   therefore always 0.0 exactly where the score matters most. `tower/prior.py::best_prior()` reads that rule as
+   intended: a lease spans several files, so score the target against the other **distinct**
    files the lease covers and take the strongest coupling. Measured result: 0.667, giving 0.88.
 
 4. **The adapter's subprocess timeout does not reliably bound wall time on Windows.** A 20 s timeout

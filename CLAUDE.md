@@ -14,19 +14,18 @@ and the denial carries the first session's **intent** (from its Entire Checkpoin
 can reroute. Prevention, not review. Call-graph space, not file space.
 
 ## Read before acting
-1. `TOWER_V2_NO_HOMEWORK.md` — the current plan. **It overrides the spec wherever they disagree.**
-2. `TOWER_BUILD_SPEC.md` — data model, scoring, hook JSON contracts, non-goals.
+1. `ARCHITECTURE.md` — intent, the four-phase flow, the seams, rejected options, open risks.
+2. `STATE.md` — current state and the runbook rules that will silently break a demo if skipped.
 3. `NOTES.md` — the real Entire CLI output shapes, captured on this machine. Trust this over any
-   command syntax written in the spec.
+   `entire` command syntax written anywhere else.
 
-**Once `NOTES.md` exists, read it before you run any `entire` command or write any parser.** Every
-`entire` invocation printed in the spec — §4.5, §9, the Prompt R block — is a guess written before the
-CLI was ever run. `NOTES.md` is the only record of what this machine actually returned. If the two
-disagree, `NOTES.md` wins and the spec is wrong. This applies to a fresh session as much as to this one.
+**Read `NOTES.md` before you run any `entire` command or write any parser.** Every `entire`
+invocation in the original design sketch was a guess written before the CLI was ever run. `NOTES.md` is the only record of what this machine actually returned. If anything
+disagrees with it, `NOTES.md` wins. This applies to a fresh session as much as to this one.
 
 ## Rules I will not repeat
-- **Do not redesign.** The architecture is decided. If something in the spec is wrong, fix it in one
-  place, tell me in one line, and continue. Never open an alternatives discussion.
+- **Do not redesign.** The architecture is decided (`ARCHITECTURE.md`). If something in it is wrong,
+  fix it in one place, tell me in one line, and continue. Never open an alternatives discussion.
 - **No daemon, no server, no threads, no BFS, no ORM, no React, no Docker, no CI.** Hooks talk to
   SQLite directly.
 - **All Entire calls live in the adapter functions in `tower/core.py`.** Nowhere else, ever.

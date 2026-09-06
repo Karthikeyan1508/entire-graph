@@ -1,10 +1,10 @@
 """TOWER core: SQLite store + the only `entire` adapter surface + the separation algorithm.
 
-One module, no server, no threads (see TOWER_V2_NO_HOMEWORK.md CUT 1-3). Every `entire` invocation
+One module, no server, no threads (see ARCHITECTURE.md, "Rejected options"). Every `entire` invocation
 lives in this file and nowhere else. Every adapter function fails open: on any error it returns an
 empty/None result rather than raising, so a hook built on top of this module can always `sys.exit(0)`.
 
-Shapes parsed here are the REAL ones captured in NOTES.md, not TOWER_BUILD_SPEC.md's pre-recon
+Shapes parsed here are the REAL ones captured in NOTES.md, not the design sketch's pre-recon
 guesses -- see NOTES.md if a field name here looks surprising.
 """
 
@@ -687,7 +687,7 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
 
 
 def render_deny(decision: Decision) -> str:
-    """spec TOWER_BUILD_SPEC.md §8, stage 1 template only -- no Foundation Model call.
+    """Plain-text handoff brief. Template only -- no model call on this path.
 
     Curveball: the tier line below is not decoration -- it is the difference between "this hop
     distance is settled fact" and "this hop distance came from a query the graph itself flagged as

@@ -1,6 +1,6 @@
 # STATE — where a fresh session should start reading
 
-Full plan: `TOWER_V2_NO_HOMEWORK.md` (overrides `TOWER_BUILD_SPEC.md`). Architecture: `ARCHITECTURE.md`.
+Architecture and rejected options: `ARCHITECTURE.md`. Submission writeup: `BUILDATHON.md`.
 Real CLI shapes: `NOTES.md`. This file is the fast path for someone (or something) joining mid-flight.
 
 ## Runbook rule that will silently break the demo if skipped
@@ -17,7 +17,7 @@ before the noon demo / the Curveball session's first prompt.** Skipping this mea
 of that session silently (well — now loudly, but still) leases nothing, and TOWER protects nobody until
 someone notices and re-runs it.
 
-No `scripts/demo_up.sh`/`demo_reset.sh` exist yet (spec §2 lists them, not yet built this session) — if
+No `scripts/demo_up.sh`/`demo_reset.sh` exist yet — if
 one gets written, the prewarm step belongs at its start, before the first prompt is sent.
 
 ## Intent
@@ -62,7 +62,7 @@ space, not file space.
    not silently accepted either — flagged for a decision.
 2. Prewarm-after-every-commit (above) is a manual step with no automation or reminder besides this
    file and the prewarm.sh comment. Nothing currently stops someone from forgetting it.
-3. `check()`'s hops=0 prior lookup is a same-file `(file, file)` key in `prior_cache` (spec §5.2's
+3. `check()`'s hops=0 prior lookup was a same-file `(file, file)` key in `prior_cache` (the original
    literal reading) — real co-change data never produces same-file pairs, so the 0.63->0.87
    calibration currently depends on staging that exact row by hand. Deferred to Phase D.
 4. Real two-terminal, two-session proof (the actual C2 gate) has not yet run — only piped fake

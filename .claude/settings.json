@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_separation.py",
+            "command": "D:/tower/.venv/Scripts/python.exe D:/tower/entire-graph/hooks/tower_separation.py",
             "timeout": 10
           }
         ]
@@ -51,7 +51,7 @@
           },
           {
             "type": "command",
-            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_session.py",
+            "command": "D:/tower/.venv/Scripts/python.exe D:/tower/entire-graph/hooks/tower_session.py",
             "timeout": 10
           }
         ]
@@ -100,7 +100,7 @@
           },
           {
             "type": "command",
-            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_flightplan.py",
+            "command": "D:/tower/.venv/Scripts/python.exe D:/tower/entire-graph/hooks/tower_flightplan.py",
             "timeout": 60
           }
         ]

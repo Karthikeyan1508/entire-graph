@@ -1,0 +1,22 @@
+diff --git a/internal/sem/search.go b/internal/sem/search.go
+index 12e58854..887ebf35 100644
+--- a/internal/sem/search.go
++++ b/internal/sem/search.go
+@@ -4800,10 +4800,15 @@ func pathSearchScore(q searchQuery, filePath string) float64 {
+ 		if weight != 1 && weight < 1.25 {
+ 			continue
+ 		}
++		// Basename/path-substring weights (was 2.5/1.25): a path hit was routinely
++		// out-scoring a real content or symbol-name match on its own (see
++		// stripSearchQueryURLState's index.js example above) — down-weighted 40%,
++		// keeping the 2:1 basename-vs-full-path ratio, so path stays a signal rather
++		// than a decision.
+ 		if strings.Contains(base, term) {
+-			score += 2.5 * weight
++			score += 1.5 * weight
+ 		} else if strings.Contains(lower, term) {
+-			score += 1.25 * weight
++			score += 0.75 * weight
+ 		}
+ 	}
+ 	return score

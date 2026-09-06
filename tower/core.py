@@ -36,6 +36,26 @@ DB_PATH = Path(os.environ.get("TOWER_DB_PATH", "")) if os.environ.get("TOWER_DB_
 
 STRUCTURAL_BY_HOPS = {0: 1.00, 1: 0.60, 2: 0.35}
 
+# --------------------------------------------------------------------------------------
+# Evidence quality (noon Curveball, Track 2: "the graph is evidence, not an oracle")
+#
+# A static call graph cannot resolve dynamic dispatch, reflection or generated code. Entire
+# reports this honestly -- `partial_failures[]`, `warnings[]`, `completeness`,
+# `disambiguation_required` -- and TOWER used to discard all of it, presenting every hop as
+# settled fact.
+#
+# The direction of the correction matters and is easy to get backwards: a MISSING graph edge is a
+# collision TOWER cannot see. So when analysis is partial, "no path found" stops being evidence of
+# safety. Partial evidence therefore makes TOWER MORE conservative, never less -- it can raise a
+# `cleared` to `warned`, and it must never downgrade a `denied`.
+# --------------------------------------------------------------------------------------
+EVIDENCE_CONFIRMED = "confirmed"    # graph fully resolved for this file
+EVIDENCE_PARTIAL = "partial"        # file implicated in partial_failures / degraded / ambiguous
+EVIDENCE_UNVERIFIED = "unverified"  # no resolved symbol; needs source or test verification
+
+EVIDENCE_RANK = {EVIDENCE_CONFIRMED: 0, EVIDENCE_PARTIAL: 1, EVIDENCE_UNVERIFIED: 2}
+DECISION_RANK = {"cleared": 0, "warned": 1, "denied": 2}
+
 DEFAULT_POLICY = {
     "separation_depth": 2,
     "lease_depth": 2,
@@ -49,6 +69,9 @@ DEFAULT_POLICY = {
     "fail_open": True,
     "adapter_timeout_s": 20,
     "cache_ttl_s": 600,
+    # Curveball: the weakest decision allowed when graph evidence for the target file is
+    # partial or unverified. Detection lives in the adapter (code); this is the behaviour knob.
+    "partial_evidence_floor": "warned",
 }
 
 SCHEMA = """
@@ -64,6 +87,7 @@ CREATE TABLE IF NOT EXISTS leases (
   session_id TEXT, symbol_id TEXT,
   kind TEXT, hops INTEGER,
   path TEXT, line_start INTEGER, line_end INTEGER, via TEXT,
+  evidence TEXT DEFAULT 'confirmed', verify_command TEXT, evidence_note TEXT,
   created_at REAL, expires_at REAL, released_at REAL
 );
 CREATE INDEX IF NOT EXISTS idx_lease_symbol ON leases(symbol_id);
@@ -78,6 +102,7 @@ CREATE TABLE IF NOT EXISTS squawks (
   score REAL, structural REAL, prior REAL, distance INTEGER,
   other_session_id TEXT, other_intent TEXT,
   path_json TEXT,
+  evidence TEXT DEFAULT 'confirmed',
   latency_ms INTEGER,
   rerouted INTEGER DEFAULT 0
 );
@@ -103,6 +128,9 @@ class SymbolRef:
     line_start: Optional[int]
     line_end: Optional[int]
     kind: str
+    evidence: str = EVIDENCE_CONFIRMED
+    verify_command: Optional[str] = None
+    evidence_note: str = ""
 
 
 @dataclass
@@ -112,6 +140,7 @@ class FlightResult:
     halo_count: int
     total: int
     capped: bool
+    partial_count: int = 0
 
 
 @dataclass
@@ -129,6 +158,9 @@ class Decision:
     line_start: Optional[int] = None
     line_end: Optional[int] = None
     reason: str = ""
+    evidence: str = EVIDENCE_CONFIRMED
+    verify_command: Optional[str] = None
+    evidence_note: str = ""
 
 
 # --------------------------------------------------------------------------------------
@@ -147,9 +179,26 @@ def get_connection() -> sqlite3.Connection:
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
+        _migrate_evidence_columns(conn)
         conn.commit()
         _CONNECTIONS[key] = conn
     return conn
+
+
+def _migrate_evidence_columns(conn: sqlite3.Connection) -> None:
+    # Curveball landed after a real ~/.tower/tower.db already existed on this machine; CREATE
+    # TABLE IF NOT EXISTS does not add columns to a table that's already there, so a pre-Curveball
+    # DB needs these added by hand. Each ALTER is caught independently -- idempotent either way.
+    for stmt in (
+        "ALTER TABLE leases ADD COLUMN evidence TEXT DEFAULT 'confirmed'",
+        "ALTER TABLE leases ADD COLUMN verify_command TEXT",
+        "ALTER TABLE leases ADD COLUMN evidence_note TEXT",
+        "ALTER TABLE squawks ADD COLUMN evidence TEXT DEFAULT 'confirmed'",
+    ):
+        try:
+            conn.execute(stmt)
+        except sqlite3.OperationalError:
+            pass  # column already exists
 
 
 def _load_policy() -> dict:
@@ -257,6 +306,43 @@ def _normalize_path(file_path: str, repo: str) -> str:
 # --------------------------------------------------------------------------------------
 
 
+def _evidence_context(data: dict) -> dict:
+    """One evidence context per Entire response -- computed once, applied per file/symbol below.
+    This is the only place `completeness`/`stats.completeness_level`/`partial_failures`/`warnings`/
+    `disambiguation_required` are read; every caller below goes through `_evidence_for()`, never
+    back at the raw response."""
+    stats = data.get("stats") or {}
+    completeness_level = stats.get("completeness_level")
+    if completeness_level is None:
+        completeness_level = (data.get("completeness_scope") or {}).get("level")
+    partial_by_file = {
+        pf.get("file_path"): pf.get("code")
+        for pf in (data.get("partial_failures") or [])
+        if pf.get("file_path")
+    }
+    return {
+        "partial_by_file": partial_by_file,
+        "disambiguation_required": bool(data.get("disambiguation_required")),
+        "degraded": completeness_level not in (None, "ok"),
+    }
+
+
+def _evidence_for(file_path: str, symbol_id: Optional[str], ctx: dict) -> tuple[str, str]:
+    """Per-file/symbol evidence tier -- see EVIDENCE_CONFIRMED/PARTIAL/UNVERIFIED above.
+
+    Graph silence is not proof of safety: an unresolved symbol or an ambiguous query is always
+    UNVERIFIED, never CONFIRMED, regardless of what else the response reports.
+    """
+    if not symbol_id or ctx["disambiguation_required"]:
+        return EVIDENCE_UNVERIFIED, "no symbol resolved -- file-level match only"
+    code = ctx["partial_by_file"].get(file_path)
+    if code:
+        return EVIDENCE_PARTIAL, f"graph reported {code} on {file_path}; this relationship may be incomplete"
+    if ctx["degraded"]:
+        return EVIDENCE_PARTIAL, "graph completeness for this query was degraded"
+    return EVIDENCE_CONFIRMED, ""
+
+
 def search_symbols(prompt: str, top_k: Optional[int] = None, repo: str = ".") -> list[SymbolRef]:
     """`entire graph search --repo <repo> --head --profile full --query <prompt> --top-k N --format json`"""
     try:
@@ -272,6 +358,11 @@ def search_symbols(prompt: str, top_k: Optional[int] = None, repo: str = ".") ->
             data = _run_entire_cached(args, repo, timeout=float(policy.get("adapter_timeout_s", 20)))
         if not data:
             return []
+        ctx = _evidence_context(data)
+        # Search's own verify_command is the narrowest test Entire has for this query -- never
+        # invent one; impact responses carry none of their own (recon-verified, see NOTES.md), so
+        # file_flight() inherits this onto halo symbols that came from the same seed.
+        verify_command = ((data.get("verify_command") or {}).get("command")) or None
         out: list[SymbolRef] = []
         for r in data.get("results", []) or []:
             symbol_id = r.get("symbol_id")
@@ -279,13 +370,18 @@ def search_symbols(prompt: str, top_k: Optional[int] = None, repo: str = ".") ->
                 # related/covering-test/literal-cluster entries carry no symbol_id -- not
                 # resolvable to a leaseable symbol, skip them.
                 continue
+            file_path = r.get("file_path", "")
+            evidence, evidence_note = _evidence_for(file_path, symbol_id, ctx)
             out.append(SymbolRef(
                 symbol_id=symbol_id,
-                path=r.get("file_path", ""),
+                path=file_path,
                 name=r.get("symbol_name") or r.get("qualified_name") or "",
                 line_start=r.get("symbol_start_line", r.get("start_line")),
                 line_end=r.get("symbol_end_line", r.get("end_line")),
                 kind=r.get("kind", ""),
+                evidence=evidence,
+                verify_command=verify_command,
+                evidence_note=evidence_note,
             ))
         return out[:top_k]
     except Exception:
@@ -315,6 +411,7 @@ def impact_set(symbol: SymbolRef, depth: Optional[int] = None, repo: str = ".") 
             data = _run_entire_cached(args, repo, timeout=float(policy.get("adapter_timeout_s", 20)))
         if not data:
             return []
+        ctx = _evidence_context(data)
         out: list[tuple[SymbolRef, int]] = []
         # co_changes is deliberately excluded: it is file-level co-edit history, not a graph hop --
         # folding it into the halo would fake a structural distance and double-count the prior term.
@@ -325,14 +422,18 @@ def impact_set(symbol: SymbolRef, depth: Optional[int] = None, repo: str = ".") 
                 symbol_id = endpoint.get("id")
                 if not symbol_id:
                     continue
+                file_path = endpoint.get("file_path", "")
                 hops = entry.get("depth", 1)
+                evidence, evidence_note = _evidence_for(file_path, symbol_id, ctx)
                 out.append((SymbolRef(
                     symbol_id=symbol_id,
-                    path=endpoint.get("file_path", ""),
+                    path=file_path,
                     name=endpoint.get("name") or endpoint.get("qualified_name") or "",
                     line_start=endpoint.get("start_line"),
                     line_end=endpoint.get("end_line"),
                     kind=endpoint.get("kind", ""),
+                    evidence=evidence,
+                    evidence_note=evidence_note,
                 ), hops))
         return out
     except Exception:
@@ -420,6 +521,10 @@ def file_flight(
         for sym, hops in impact_set(seed, depth=lease_depth, repo=repo):
             if sym.symbol_id in core:
                 continue
+            if sym.verify_command is None and seed.verify_command:
+                # impact responses carry no verify_command of their own -- inherit the seed's,
+                # already the narrowest test Entire has for that seed's file. Do not invent one.
+                sym.verify_command = seed.verify_command
             existing = halo.get(sym.symbol_id)
             if existing is None or hops < existing[0]:
                 halo[sym.symbol_id] = (hops, seed.symbol_id, sym)
@@ -432,6 +537,8 @@ def file_flight(
     if capped:
         keep = max(max_symbols - len(core_rows), 0)
         all_rows = core_rows + halo_rows[:keep]
+
+    partial_count = sum(1 for sym, _, _ in all_rows if sym.evidence != EVIDENCE_CONFIRMED)
 
     now = time.time()
     expires_at = now + ttl_minutes * 60
@@ -451,9 +558,11 @@ def file_flight(
     for sym, hops, via in all_rows:
         conn.execute(
             "INSERT INTO leases(lease_id, session_id, symbol_id, kind, hops, path, line_start, "
-            "line_end, via, created_at, expires_at, released_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,NULL)",
+            "line_end, via, evidence, verify_command, evidence_note, created_at, expires_at, "
+            "released_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,NULL)",
             (uuid.uuid4().hex, session_id, sym.symbol_id, "core" if hops == 0 else "halo", hops,
-             sym.path, sym.line_start, sym.line_end, via, now, expires_at),
+             sym.path, sym.line_start, sym.line_end, via, sym.evidence, sym.verify_command,
+             sym.evidence_note, now, expires_at),
         )
     conn.commit()
 
@@ -463,6 +572,7 @@ def file_flight(
         halo_count=len(all_rows) - len(core_rows),
         total=len(all_rows),
         capped=capped,
+        partial_count=partial_count,
     )
 
 
@@ -525,6 +635,17 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
         else:
             decision = "cleared"
 
+        # Curveball insurance: partial/unverified graph evidence, carried on the lease row from
+        # flight-plan time (never recomputed here -- CUT 3), can only RAISE the decision to the
+        # policy floor. It never lowers one that's already stronger -- a deny stays a deny. Graph
+        # silence is not proof of safety.
+        evidence = lease_row["evidence"] or EVIDENCE_CONFIRMED
+        evidence_note = lease_row["evidence_note"] or ""
+        if evidence != EVIDENCE_CONFIRMED:
+            floor = str(policy.get("partial_evidence_floor", "warned"))
+            if DECISION_RANK.get(floor, 1) > DECISION_RANK.get(decision, 0):
+                decision = floor
+
         other_session_id = lease_row["session_id"]
         # NOT session_intent(): that shells out to `entire checkpoint list` and this path must
         # stay pure SQL (CUT 3, <200ms). flights.intent was already stored, subprocess-free, at
@@ -539,6 +660,7 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
             other_session=other_session_id, other_intent=other_intent, via=lease_row["via"],
             target_path=norm_path, symbol_id=lease_row["symbol_id"],
             line_start=lease_row["line_start"], line_end=lease_row["line_end"], reason=decision,
+            evidence=evidence, verify_command=lease_row["verify_command"], evidence_note=evidence_note,
         )
     except Exception as exc:
         return _cleared(norm_path, reason=f"error:{exc.__class__.__name__}")
@@ -550,7 +672,13 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
 
 
 def render_deny(decision: Decision) -> str:
-    """spec TOWER_BUILD_SPEC.md §8, stage 1 template only -- no Foundation Model call."""
+    """spec TOWER_BUILD_SPEC.md §8, stage 1 template only -- no Foundation Model call.
+
+    Curveball: the tier line below is not decoration -- it is the difference between "this hop
+    distance is settled fact" and "this hop distance came from a query the graph itself flagged as
+    incomplete or ambiguous." A PARTIAL/UNVERIFIED result always says the distance may be wrong and
+    names a way to check it, so the blocked agent isn't asked to just trust a number.
+    """
     lines = f"{decision.line_start}-{decision.line_end}" if decision.line_start else "?"
     other_short = (decision.other_session or "?")[:8]
     intent = decision.other_intent or "(no recorded intent)"
@@ -559,6 +687,23 @@ def render_deny(decision: Decision) -> str:
         path_chain += f" <- {decision.symbol_id}"
     if decision.via:
         path_chain += f" <- {decision.via}"
+
+    evidence = decision.evidence or EVIDENCE_CONFIRMED
+    if evidence == EVIDENCE_CONFIRMED:
+        evidence_line = "  evidence      CONFIRMED -- structural, graph fully resolved for this file\n"
+    elif evidence == EVIDENCE_PARTIAL:
+        note = decision.evidence_note or "graph analysis for this file was incomplete"
+        how = (f"Verify with: {decision.verify_command}" if decision.verify_command
+               else "Re-run entire graph impact on this file before trusting the distance above")
+        evidence_line = f"  evidence      PARTIAL -- {note}; this relationship may be wrong. {how}.\n"
+    else:  # EVIDENCE_UNVERIFIED
+        note = decision.evidence_note or "no resolved symbol, file-level match only"
+        verify = decision.verify_command or "inspect the source directly -- no verify command available"
+        evidence_line = (
+            f"  evidence      UNVERIFIED -- {note}; the hop distance above may be wrong. "
+            f"Verify with: {verify}\n"
+        )
+
     return (
         "⛔ DENIED -- separation conflict\n\n"
         f"  symbol        {decision.symbol_id}\t{decision.target_path}:{lines}\n"
@@ -566,7 +711,8 @@ def render_deny(decision: Decision) -> str:
         f"  their intent  \"{intent}\"\n"
         f"  graph path    {path_chain}\tdepth {decision.hops}\n"
         f"  prior         P(collide) = {decision.score}\t"
-        f"(structural {decision.structural} x 0.65 + prior {decision.prior} x 0.35)\n\n"
+        f"(structural {decision.structural} x 0.65 + prior {decision.prior} x 0.35)\n"
+        f"{evidence_line}\n"
         "  handoff brief\n"
         f"  Session {other_short} is already leasing this area (depth {decision.hops} from its core "
         "edit). Wait for its lease to expire, or ask the user which of you should continue; do not "
@@ -589,17 +735,18 @@ def record_squawk(
     conn.execute(
         "INSERT INTO squawks(squawk_id, ts, session_id, tool, file_path, line, target_symbol, "
         "decision, score, structural, prior, distance, other_session_id, other_intent, path_json, "
-        "latency_ms, rerouted) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
+        "evidence, latency_ms, rerouted) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)",
         (squawk_id, now, session_id, tool, file_path, line, decision.symbol_id, decision.decision,
          decision.score, decision.structural, decision.prior, decision.hops, decision.other_session,
-         decision.other_intent, path_json, latency_ms),
+         decision.other_intent, path_json, decision.evidence, latency_ms),
     )
     payload = {
         "squawk_id": squawk_id, "ts": now, "session_id": session_id, "tool": tool,
         "file_path": file_path, "line": line, "target_symbol": decision.symbol_id,
         "decision": decision.decision, "score": decision.score, "structural": decision.structural,
         "prior": decision.prior, "distance": decision.hops, "other_session_id": decision.other_session,
-        "other_intent": decision.other_intent, "path_json": path_json, "latency_ms": latency_ms,
+        "other_intent": decision.other_intent, "path_json": path_json, "evidence": decision.evidence,
+        "latency_ms": latency_ms,
     }
     conn.execute(
         "INSERT INTO outbox(table_name, payload_json, created_at) VALUES ('squawks', ?, ?)",

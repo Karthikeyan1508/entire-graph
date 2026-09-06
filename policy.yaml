@@ -1,6 +1,8 @@
 separation_depth: 2          # max graph hops that still counts as a conflict
 lease_depth: 2                # impact depth used when filing a flight plan
-seed_top_k: 3                 # impact_set runs once per seed -> top_k multiplies subprocess count
+seed_top_k: 1                  # TEMPORARY (13:20): impact runs once per seed and a cold
+                               # impact is 13-45s, so 3 seeds overran the 60s hook limit on every
+                               # novel prompt. RESTORE TO 3 BEFORE THE FINAL DEMO.
 max_lease_symbols: 300
 lease_ttl_minutes: 60          # was 20: a real agent session spends 10+ min thinking before
                                # it edits, and the lease expired mid-test. 60 covers a demo.
@@ -13,3 +15,6 @@ adapter_timeout_s: 55          # was 20: a cold impact call takes ~13-45s and th
                                # produced a SILENT 0-symbol lease. 55s stays under the
                                # 60s UserPromptSubmit hook timeout. Slow beats silent.
 cache_ttl_s: 600
+partial_evidence_floor: warned # Curveball: weakest decision allowed when a lease's graph evidence
+                               # is partial or unverified (see tower/core.py EVIDENCE_*). Can only
+                               # raise cleared->warned; never downgrades an already-stronger denied.

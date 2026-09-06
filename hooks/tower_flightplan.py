@@ -47,6 +47,15 @@ def main() -> None:
                 f"{' (capped)' if result.capped else ''}. "
                 f"{others_active} other session(s) active in this repo."
             )
+            if result.partial_count:
+                # Curveball: graph is evidence, not an oracle -- say so as loudly as the existing
+                # 0-symbols warning, not just in the deny path. A separation check against these
+                # symbols floors at "warned" even if the score alone would clear.
+                message += (
+                    f" {result.partial_count} of those symbols carry partial or unverified graph "
+                    "evidence (incomplete analysis, or a query the graph itself flagged as "
+                    "ambiguous) -- TOWER treats those as at least a warn, never a silent clear."
+                )
         print(json.dumps({
             "hookSpecificOutput": {
                 "hookEventName": "UserPromptSubmit",

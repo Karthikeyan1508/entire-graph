@@ -1,0 +1,1 @@
+Remove the diversity reserve in selectDiverseCandidates in internal/sem/search.go

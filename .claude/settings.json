@@ -29,6 +29,16 @@
             "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks claude-code pre-task'"
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_separation.py",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -38,6 +48,11 @@
           {
             "type": "command",
             "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks claude-code session-end'"
+          },
+          {
+            "type": "command",
+            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_session.py",
+            "timeout": 10
           }
         ]
       }
@@ -82,6 +97,11 @@
           {
             "type": "command",
             "command": "sh -c 'if ! command -v entire >/dev/null 2>&1; then exit 0; fi; exec entire hooks claude-code user-prompt-submit'"
+          },
+          {
+            "type": "command",
+            "command": "D:\\tower\\.venv\\Scripts\\python.exe D:\\tower\\entire-graph\\hooks\\tower_flightplan.py",
+            "timeout": 60
           }
         ]
       }

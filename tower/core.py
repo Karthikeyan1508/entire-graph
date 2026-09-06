@@ -526,7 +526,13 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
             decision = "cleared"
 
         other_session_id = lease_row["session_id"]
-        other_intent = session_intent(other_session_id, repo=repo) if decision != "cleared" else None
+        # NOT session_intent(): that shells out to `entire checkpoint list` and this path must
+        # stay pure SQL (CUT 3, <200ms). flights.intent was already stored, subprocess-free, at
+        # file_flight() time -- read it back instead.
+        intent_row = conn.execute(
+            "SELECT intent FROM flights WHERE session_id = ?", (other_session_id,)
+        ).fetchone()
+        other_intent = intent_row["intent"] if intent_row else None
 
         return Decision(
             decision=decision, score=score, structural=structural, prior=prior, hops=hops,

@@ -2,11 +2,14 @@ separation_depth: 2          # max graph hops that still counts as a conflict
 lease_depth: 2                # impact depth used when filing a flight plan
 seed_top_k: 3                 # impact_set runs once per seed -> top_k multiplies subprocess count
 max_lease_symbols: 300
-lease_ttl_minutes: 20
+lease_ttl_minutes: 60          # was 20: a real agent session spends 10+ min thinking before
+                               # it edits, and the lease expired mid-test. 60 covers a demo.
 deny_threshold: 0.55
 warn_threshold: 0.30
 weights: {structural: 0.65, prior: 0.35}
 exempt_globs: ["**/*.md", "**/*.lock", ".entire/**", "tests/**", "tower/**", "hooks/**"]
 fail_open: true
-adapter_timeout_s: 20
+adapter_timeout_s: 55          # was 20: a cold impact call takes ~13-45s and the 20s kill
+                               # produced a SILENT 0-symbol lease. 55s stays under the
+                               # 60s UserPromptSubmit hook timeout. Slow beats silent.
 cache_ttl_s: 600

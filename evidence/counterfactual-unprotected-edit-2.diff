@@ -1,0 +1,42 @@
+diff --git a/internal/sem/search.go b/internal/sem/search.go
+index 12e58854..4faeeeb1 100644
+--- a/internal/sem/search.go
++++ b/internal/sem/search.go
+@@ -4169,6 +4169,14 @@ func selectDiverseCandidates(candidates []searchCandidate, topK, maxPerFile int)
+ 		perBaseName[strings.ToLower(filepath.Base(chosen.FilePath))]++
+ 		remaining = append(remaining[:bestIndex], remaining[bestIndex+1:]...)
+ 	}
++	// The reserve above picks WHICH regions make the cut, in the order it happened to visit
++	// files in, not in relevance order: a weak unseen-file candidate seated to satisfy the
++	// reserve can land ahead of a stronger candidate from a file already represented. Selection
++	// is a one-way decision — a region does not lose its seat because it sorts lower — but the
++	// reported order is a separate contract results[] documents (descending by score) and
++	// callers truncate on. A stable sort restores it without touching who was picked: a
++	// reserved candidate keeps its seat, it is just reported where its own score places it.
++	sortSearchCandidates(selected)
+ 	return selected
+ }
+ 
+diff --git a/internal/sem/search_test.go b/internal/sem/search_test.go
+index 310077cc..a5d4927b 100644
+--- a/internal/sem/search_test.go
++++ b/internal/sem/search_test.go
+@@ -1541,11 +1541,13 @@ func TestDiverseSelectionCoversFilesBeforeAddingRegions(t *testing.T) {
+ 	if len(selected) != 3 {
+ 		t.Fatalf("selected %d candidates, want 3", len(selected))
+ 	}
+-	if selected[0].result.FilePath != "src/large.go" || selected[1].result.FilePath != "src/related.go" {
+-		t.Fatalf("first discovery pass did not cover distinct files: %#v", selected)
+-	}
+-	if selected[2].result.SymbolName != "second" {
+-		t.Fatalf("second region was not restored after file coverage: %#v", selected)
++	// The reserve picks "related" over "third" so a second file is represented within the
++	// first three slots — but the REPORTED order still descends by score: "second" (9.9)
++	// outranks "related" (8) even though "related" was the one seated to satisfy the reserve.
++	names := []string{selected[0].result.SymbolName, selected[1].result.SymbolName, selected[2].result.SymbolName}
++	want := []string{"first", "second", "related"}
++	if names[0] != want[0] || names[1] != want[1] || names[2] != want[2] {
++		t.Fatalf("selection = %v, want %v (covers distinct files, ordered by score)", names, want)
+ 	}
+ }
+ 

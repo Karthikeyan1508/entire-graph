@@ -1,0 +1,21 @@
+[
+  {
+    "squawk_id": "d523a9c7",
+    "ts": 1788675748.8733008,
+    "session_id": "917e5770-90d9-4ea5-a6de-b1fa1579a1de",
+    "tool": "Edit",
+    "file_path": "D:\\tower\\entire-graph\\internal\\sem\\search.go",
+    "line": null,
+    "target_symbol": "local/entire-graph:Go:internal/sem/search.go:function:SearchRepository",
+    "decision": "denied",
+    "score": 0.65,
+    "structural": 1.0,
+    "prior": 0.0,
+    "distance": 0,
+    "other_session_id": "2444c036-41ad-40b4-bbff-45ecbfe5be55",
+    "other_intent": "I need to change how SearchRepository ranks results",
+    "path_json": "[\"internal/sem/search.go\", \"local/entire-graph:Go:internal/sem/search.go:function:SearchRepository\"]",
+    "latency_ms": null,
+    "rerouted": 0
+  }
+]

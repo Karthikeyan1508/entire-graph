@@ -3,7 +3,7 @@
   "checkpoint_id": "d0779d847fca",
   "strategy": "manual-commit",
   "branch": "tower",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "BUILDATHON.md"
   ],
@@ -21,6 +21,13 @@
       "compact_transcript": "/d0/779d847fca/1/transcript.jsonl",
       "content_hash": "/d0/779d847fca/1/content_hash.txt",
       "prompt": "/d0/779d847fca/1/prompt.txt"
+    },
+    {
+      "metadata": "/d0/779d847fca/2/metadata.json",
+      "transcript": "/d0/779d847fca/2/full.jsonl",
+      "compact_transcript": "/d0/779d847fca/2/transcript.jsonl",
+      "content_hash": "/d0/779d847fca/2/content_hash.txt",
+      "prompt": "/d0/779d847fca/2/prompt.txt"
     }
   ],
   "token_usage": {

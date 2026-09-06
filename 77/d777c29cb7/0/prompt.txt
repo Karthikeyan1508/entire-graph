@@ -1,0 +1,137 @@
+Read TOWER_BUILD_SPEC.md and TOWER_V2_NO_HOMEWORK.md. V2 overrides the spec where they disagree:
+no daemon, no BFS, no subprocess on the hot path.
+
+Note: the spec's §3.1 symbol example and §5.2 co-change calibration reference gorilla/mux. That is
+stale — we guard THIS repo. See ARCHITECTURE.md, "What TOWER guards".
+
+I have never run the Entire CLI before, so I do not know its real output shapes. First, capture them.
+Write and run scripts/recon.sh against THIS repo (run it under Git Bash — this is Windows):
+  entire graph --help                          -> NOTES.md
+  entire graph capabilities                    -> NOTES.md
+  entire graph search --query "semantic search over a repository" --format json --top-k 8
+                                               -> fixtures/search.json + NOTES.md
+  entire graph def --symbol internal/sem/search.go:683 --json
+                                               -> fixtures/def.json + NOTES.md
+       (that line is `func SearchRepository(ctx, repo, providerVersion, query string, options SearchOptions)`)
+  entire graph impact --symbol SearchRepository --depth 2 --json
+                                               -> fixtures/impact.json + NOTES.md
+  entire checkpoint list --json                -> fixtures/checkpoints.json
+
+The command syntax above is a GUESS from the spec. If a command does not exist, find the real one
+from `entire graph --help` and record BOTH the guess and the truth in NOTES.md. If search returns
+nothing, check whether this clone needs an index built first and record that command too.
+On any failure, record the exact error and keep going.
+
+Run it, then TELL ME the real field names before writing a single parser. In particular: how impact
+reports hop distance, and whether def returns line ranges. Do not write tower/ yet.
+
+---
+
+<task-notification>
+<task-id>b9fvbk7m6</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>C:\Users\This PC\AppData\Local\Temp\claude\D--tower-entire-graph\b275a28d-d0c6-4236-b625-86174468ed49\tasks\b9fvbk7m6.output</output-file>
+<status>completed</status>
+<summary>Background command "Run recon script" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>btqs9g3xq</task-id>
+<summary>Monitor event: "Wait for recon.sh background job to finish"</summary>
+<event>RECON_EXIT=0</event>
+</task-notification>
+
+---
+
+Recon accepted. Build tower/core.py now, against the REAL shapes in NOTES.md, never the spec's guesses.
+
+LATENCY IS DECIDED — do not re-litigate:
+Every adapter call uses --head --profile full. --head hits the committed-tree cache (the working tree
+is never cached); --profile full is mandatory or the call graph is inactive and there are no hops.
+The cold cost is paid ONCE by a pre-warm, never per prompt.
+  - scripts/prewarm.sh runs one search and one impact with those flags so the cache is hot pre-demo.
+  - Record in ARCHITECTURE.md as a known limitation: TOWER reasons about the COMMITTED call graph;
+    uncommitted symbols are invisible to the lease and are caught only at file granularity.
+
+1. SQLite at ~/.tower/tower.db built via Path.home() — the profile path contains a SPACE, never build
+   it by string concatenation. WAL mode. Tables: flights, leases, squawks, prior_cache, graph_cache,
+   outbox. leases carry symbol_id, path, line_start, line_end, hops, via, kind.
+
+2. LEASE KEY is Entire's own id, verbatim, e.g.
+     local/entire-graph:Go:internal/sem/search.go:function:SearchRepository
+   Do NOT synthesise spec §3.1's path::name. Keep `path` as a separate column for the prior lookup.
+   Targets with no symbol (new file, yaml, md) use "<path>::*" and collide at distance 0 only.
+
+3. Adapter functions — each try/except -> empty, subprocess timeout 20s, memoised in graph_cache on
+   sha1(cmd):
+     search_symbols(prompt, top_k)
+       entire graph search --repo . --head --profile full --query "<p>" --top-k N --format json
+       Use symbol_start_line / symbol_end_line for the lease. NOT start_line/end_line — those are the
+       ranked snippet region and will under-lease large functions.
+     symbol_at_file(path) — resolves against the lease table only. The hot path runs NO subprocess.
+     impact_set(symbol_id, depth)
+       entire graph impact --repo . --head --profile full --symbol <name> --depth 2 --format json
+       HOPS come from callers.entries[].depth (1 or 2), and callees.entries[].depth /
+       type_consumers.entries[].depth (always 1).
+       EXCLUDE co_changes from the halo entirely — they are file-level, not graph hops, and they would
+       both fake a structural distance and double-count the prior term.
+     session_intent(session_id) — entire checkpoint list --json
+   TOWER_FIXTURES=1 reads fixtures/ instead of shelling out.
+
+4. policy.yaml per spec §11 but seed_top_k: 3, NOT 8 — impact_set runs once per seed, so top_k
+   multiplies subprocess count directly. Measure, then raise only if the hook is comfortably fast.
+
+5. file_flight() -> core (hops 0) + halo (hops as above), cap 300, TTL 20 min, store `via`.
+6. check(session_id, file_path) -> pure SQL over OTHER sessions' unexpired leases, lowest hops wins,
+   score = 0.65*structural + 0.35*prior, structural {0:1.0, 1:0.6, 2:0.35}. Exempt globs, self-owned
+   lease, and ANY exception -> "cleared".
+7. render_deny(decision) -> spec §8 plain text, template only, no LLM.
+8. record_squawk() writes to squawks AND enqueues into outbox.
+
+Then tests/test_core.py with TOWER_FIXTURES=1 proving:
+  hops 0 + prior 0.63 -> 0.87 -> denied     hops 1 + prior 0 -> 0.39 -> warned
+  hops 2 + prior 0 -> 0.23 -> cleared       own lease -> cleared      exempt glob -> cleared
+Run pytest and show me the table.
+
+Separately, commit scripts/recon.sh + NOTES.md + fixtures/ now — that is graph evidence #1.
+
+---
+
+First: commit tower/core.py, tests/, policy.yaml, scripts/prewarm.sh as one commit. Note in the message
+the fnmatch path-awareness bug, the TOWER_DB_PATH test override, and that hops-0 prior is a known gap
+(self-pair lookup) to be fixed in Phase D.
+
+Then build the three V2 hooks. Each reads stdin JSON, wraps EVERYTHING in try/except, always sys.exit(0).
+
+WINDOWS — the spec's `python3 $CLAUDE_PROJECT_DIR/hooks/x.py` will not run here:
+  - interpreter is the absolute venv path: D:\tower\.venv\Scripts\python.exe
+  - inside settings.json the backslashes must be JSON-escaped: D:\\tower\\.venv\\Scripts\\python.exe
+  - the hook must put the repo root on sys.path before `import tower` — the venv lives OUTSIDE the repo
+  - hooks must NOT set TOWER_DB_PATH; they use the real ~/.tower/tower.db
+
+hooks/tower_flightplan.py  UserPromptSubmit, timeout 60
+    file_flight(), then print additionalContext naming lease size and other active sessions
+hooks/tower_separation.py  PreToolUse "Edit|Write|MultiEdit", timeout 10
+    check(); on deny print EXACTLY
+    {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"<render_deny output>"}}
+    on cleared OR warned print NOTHING
+hooks/tower_session.py     SessionEnd -> release leases, print nothing
+
+REGISTER BY MERGING into .claude/settings.json. Show me the file before and after. Three things are
+already in there and none may break:
+  - Entire's hooks on UserPromptSubmit, SessionEnd, PreToolUse(matcher "Agent") and 4 other events
+  - upstream's "permissions": {"deny": ["Read(./.entire/metadata/**)"]}
+  - the Codex hooks block
+Your PreToolUse entry is a NEW element appended to the existing PreToolUse array, matcher
+"Edit|Write|MultiEdit". Validate the file parses as JSON before you finish.
+
+Then prove it end to end, in front of me:
+  1. pipe a fake UserPromptSubmit payload into tower_flightplan.py; show lease row count and wall time
+  2. pipe a fake PreToolUse payload for a file in that lease from a DIFFERENT session_id;
+     show me the deny JSON on stdout
+  3. print the measured wall time of step 2 — it must be under 200 ms
+  4. pipe the same payload from the SAME session_id; show that it prints nothing
+
+Do not touch Databricks. Stop when the piped deny works and tell me.

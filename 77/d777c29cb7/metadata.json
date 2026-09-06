@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "77d777c29cb7",
+  "strategy": "manual-commit",
+  "branch": "tower",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "hooks/tower_flightplan.py",
+    "hooks/tower_separation.py",
+    "hooks/tower_session.py",
+    "tower/core.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/77/d777c29cb7/0/metadata.json",
+      "transcript": "/77/d777c29cb7/0/full.jsonl",
+      "compact_transcript": "/77/d777c29cb7/0/transcript.jsonl",
+      "content_hash": "/77/d777c29cb7/0/content_hash.txt",
+      "prompt": "/77/d777c29cb7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 168,
+    "cache_creation_tokens": 211097,
+    "cache_read_tokens": 15091885,
+    "output_tokens": 110778,
+    "api_call_count": 84
+  }
+}

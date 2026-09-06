@@ -1,1 +1,8 @@
 command: ["streamlit", "run", "app.py", "--server.port", "8000", "--server.address", "0.0.0.0"]
+
+env:
+  # Injected from the app resource named "sql-warehouse" (see the app's Resources tab).
+  # Inside a Databricks App there is no ~/.tower/databricks.env and no personal token, so this
+  # is how the radar learns which warehouse to query; auth is the app's own service principal.
+  - name: DATABRICKS_WAREHOUSE_ID
+    valueFrom: sql-warehouse

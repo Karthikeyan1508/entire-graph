@@ -199,6 +199,16 @@ The prior in that line came from Databricks. Squawk row: `denied · score 0.88 �
 prior 0.666667 · hops 0 · evidence confirmed` (`evidence/live-deny-squawk.json`, and in
 `workspace.tower.squawks`).
 
+![Two real agent sessions. Left: session A holds the lease. Right: session B's Edit is denied at its own PreToolUse hook, and the agent then reroutes rather than retrying.](evidence/deny-terminal-agent-reroutes.png)
+
+*Two terminals, one repo. Left holds the lease; right is denied at its own `PreToolUse` hook — then
+reads the handoff brief and asks how to proceed instead of retrying.*
+
+![The first live cross-session deny, 11:52](evidence/deny-terminal-first-live.png)
+
+*The first live deny, 11:52 — before the Databricks prior was wired in, so it scores 0.65 on the
+structural term alone.*
+
 **What the blocked agent did next is the actual result.** It did not retry and did not work around
 the block. It read the brief and said:
 
@@ -321,6 +331,33 @@ prior_cache              87 rows pulled back locally             (tower/prior.py
 squawks / flights / leases   8 / 4 / 166 rows drained out of band  (tower/sync.py)
 measured                 prior(internal/sem/search.go, internal/sem/provider.go) = 0.667
 ```
+
+![Unity Catalog: workspace.tower with four Delta tables](evidence/databricks-catalog-tower-schema.png)
+
+*Unity Catalog — `workspace.tower`, four Delta tables with schema comments describing what each holds.*
+
+![cochange sample data: real file pairs with pair_count and prior](evidence/databricks-cochange-sample-data.png)
+
+*`cochange` sample data. Every row is a real file pair from this repo's commit history, with
+`pair_count`, both file counts, and the derived `prior`.*
+
+![SQL Editor: the squawks table, 0.88 at the top](evidence/databricks-sql-squawks-088.png)
+
+*Every separation decision TOWER has made. Row 1 is the live deny at **0.88** — `structural 1.0` from
+the Entire Graph, `prior 0.666667` from this table. Rows 2-8 are the same collision before the prior
+was wired in, scoring 0.65 on structural alone.*
+
+![SQL Editor: joining leases against cochange](evidence/databricks-sql-graph-meets-history.png)
+
+*The join neither system can do alone: `leases` (what static analysis reserved) against `cochange`
+(what version-control history says moves together). `internal/sem/search.go` — 5 symbols leased,
+coupled with `internal/sem/provider.go`.*
+
+![The radar deployed as a Databricks App, running](evidence/databricks-app-running.png)
+
+*The radar as a Databricks App — Running, compute Active, source in the workspace, and the
+`sql-warehouse` resource bound to its own service principal `app-63u8dw tower-radar`. No personal
+token is deployed.*
 
 **Data source:** this repository's own git history (`git log --name-only`), used to compute file-pair
 co-change: `prior = pair_count / min(a_count, b_count)`, clipped to [0,1], pairs with count ≥ 2,

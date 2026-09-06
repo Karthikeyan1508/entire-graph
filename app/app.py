@@ -64,10 +64,14 @@ def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
                         q("SELECT * FROM workspace.tower.cochange ORDER BY prior DESC LIMIT 10"),
                         "databricks · workspace.tower")
         except Exception as exc:
-            st.warning(f"Delta unavailable ({type(exc).__name__}) — falling back to local SQLite.")
+            st.warning(f"Delta unavailable ({type(exc).__name__}: {exc}) — trying local SQLite.")
 
+    # The SQLite store only exists where TOWER actually runs. On Databricks compute it does not,
+    # so return empty frames with an honest source label rather than crashing the page.
+    if not DB.exists():
+        empty = pd.DataFrame()
+        return empty, empty, empty, f"NO SOURCE REACHABLE (no Delta, and no local store at {DB})"
     conn = sqlite3.connect(str(DB))
-    now = time.time()
     return (pd.read_sql("SELECT * FROM squawks ORDER BY ts DESC LIMIT 50", conn),
             pd.read_sql("SELECT * FROM flights ORDER BY filed_at DESC LIMIT 20", conn),
             pd.read_sql("SELECT file_a, file_b, prior FROM prior_cache ORDER BY prior DESC LIMIT 10", conn),
@@ -75,7 +79,7 @@ def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
 
 
 squawks, flights, cochange, source = load()
-denied = int((squawks["decision"] == "denied").sum()) if not squawks.empty else 0
+denied = int((squawks["decision"] == "denied").sum()) if (not squawks.empty and "decision" in squawks) else 0
 
 st.title("🛫 TOWER — separation radar")
 st.caption(f"source: {source}")

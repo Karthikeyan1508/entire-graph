@@ -1,0 +1,108 @@
+You are joining mid-flight with no context, after the noon Curveball. Do not edit anything yet.
+
+1. RECONSTRUCT. Read STATE.md, ARCHITECTURE.md, BUILDATHON.md, NOTES.md, policy.yaml. Run
+   `entire checkpoint list` and inspect the checkpoint on commit 4a671f4 (CP2, tag
+   pre-noon-stable). NOTES.md outranks the spec on any `entire` command syntax.
+   Summarise back in 8 lines: what TOWER is, the four-phase flow, the scoring formula, what is
+   done, what is cut, and the top 3 open risks.
+
+2. THE CURVEBALL — Track 2, "Graph is evidence, not an oracle":
+   - must not present incomplete Graph relationships as certain
+   - must identify when analysis may be partial
+   - must provide a safe fallback or verification path
+   - existing behaviour for fully resolved code must continue to work
+   - must include a test or fixture representing incomplete analysis
+   - users and agents must tell apart: confirmed structural evidence / heuristic or incomplete
+     evidence / claims that require source or test verification
+
+3. BEFORE EDITING ANYTHING, use the graph on OUR OWN code to find every place that consumes
+   relationship, impact or semantic-diff evidence. Tee all output to
+   evidence/curveball-impact.txt:
+     entire graph search --repo . --head --profile full --query "impact set hops halo lease scoring" --top-k 8 --format json
+     entire graph impact --repo . --head --profile full --symbol impact_set --depth 2 --format json
+     entire graph impact --repo . --head --profile full --symbol check --depth 2 --format json
+   That file must exist BEFORE any code change. Graph use after implementation scores in the
+   partial band.
+
+4. THEN STOP and tell me:
+   - which assumption the curveball invalidated, in one sentence
+   - the blast radius: every function that would change
+   - which seam it lands in (adapter / scoring / policy / sink)
+   - whether policy.yaml alone can express any of it
+
+Verify this rather than trusting it: fixtures/search.json and fixtures/impact.json already carry
+`completeness`, `partial_failures` (per-file code / severity / effect_on_semantic_completeness)
+and `warnings`. tower/core.py currently discards all of them.
+
+Do not write code until I say go.
+
+---
+
+GO. Implement minimally, in this order. Preserve fully-resolved behaviour exactly.
+
+CORE PRINCIPLE: partial evidence makes TOWER MORE conservative, never less. It never downgrades a
+deny; it raises a clear to warned. Graph silence is not proof of safety.
+
+1. ADAPTER (only place JSON is parsed). Extract from every response:
+   completeness / stats.completeness_level, partial_failures[] (code, severity, file_path),
+   warnings[], and disambiguation_required. Derive a per-file evidence tier:
+     confirmed  - file not in partial_failures, no disambiguation, completeness ok
+     partial    - file in partial_failures, or query hit disambiguation_required, or degraded
+     unverified - no symbol resolved (file pseudo-symbol), or file not parsed at all
+
+2. CARRY IT, DON'T RECOMPUTE. Add `evidence` to lease rows at flight-plan time, exactly as hops/via
+   are pre-computed. The hot path stays pure SQL, no new subprocess (CUT 3).
+
+3. Decision gains `evidence` and `verify_command`. Use Entire's OWN `verify_command` from the search
+   response — it is already the narrowest test command for that file. Do not invent one.
+
+4. render_deny() prints the tier explicitly, matching the curveball's three categories:
+     evidence  CONFIRMED   structural, graph fully resolved for this file
+     evidence  PARTIAL     graph reported <code> on <file>; this relationship may be incomplete
+     evidence  UNVERIFIED  no resolved symbol, file-level match only — verify with: <verify_command>
+   A PARTIAL or UNVERIFIED result must say in words that the distance may be wrong and how to check.
+
+5. policy.yaml gets ONE knob: partial_evidence_floor: warned. Detection stays in code.
+
+6. HOOKS: flightplan's additionalContext reports how many leased symbols carry partial evidence;
+   separation's deny reason carries the tier. Mirror the existing loud-0-symbols style.
+
+7. FIXTURES + TESTS:
+   - save the REAL disambiguation_required response for `check` as fixtures/impact_ambiguous.json
+   - fixtures/impact_partial.json with the target file in partial_failures
+   - tests: partial on a clear -> warned; partial on a deny -> still denied with tier shown;
+     ambiguous -> unverified with verify_command present
+   - ALL 9 EXISTING TESTS MUST PASS UNCHANGED. Fully-resolved behaviour byte-identical, or you have
+     broken "preserve existing behaviour", which is explicitly scored.
+
+Run pytest, show me the table, then commit as CP3. The message must state: which assumption the
+curveball invalidated, how the design changed, and why the new result is safe. Do not push yet.
+
+---
+
+Before you start: tower/core.py already has uncommitted scaffolding (30 lines, tests still 9/9).
+Build ON it, don't replace it:
+  - EVIDENCE_CONFIRMED / EVIDENCE_PARTIAL / EVIDENCE_UNVERIFIED constants + the rationale comment
+  - EVIDENCE_RANK and DECISION_RANK ordering maps
+  - policy default `partial_evidence_floor: "warned"`
+  - leases schema: + evidence TEXT DEFAULT 'confirmed', verify_command TEXT
+  - squawks schema: + evidence TEXT DEFAULT 'confirmed'
+  - SymbolRef: + evidence, verify_command (defaulted, so existing behaviour is unchanged)
+  - Decision: + evidence, verify_command, evidence_note (defaulted)
+
+Still to do: the adapter extraction (partial_failures/warnings/completeness/disambiguation_required
+-> per-file tier), carrying evidence onto lease rows in file_flight(), the floor logic in check(),
+render_deny()'s three-tier block, the hook messages, fixtures and tests.
+
+Existing DBs won't have the new columns — add an ALTER TABLE migration guarded by try/except.
+Do NOT touch notebooks/ or tower/prior.py; another session owns those.
+
+---
+
+Re-read tower/core.py before you edit — it changed under you after you read it (my scaffolding
+landed). That is why the Update failed. I am off that file permanently now; nobody else is
+touching core.py, hooks/, tests/ or fixtures/.
+
+Also: policy.yaml seed_top_k is temporarily 1 so the flightplan hook stops eating 60s per prompt
+(impact runs once per seed and a cold impact is 13-45s). It is commented TEMPORARY — restore it to
+3 before any final demo. The hook timeout in settings.json is now 600s for future sessions.

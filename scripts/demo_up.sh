@@ -21,7 +21,10 @@ entire graph index --repo . --profile full --format text || echo "    (index fai
 
 echo "==> 2/3  warming the exact prompts the demo uses"
 rm -f "$WARM_DB"
-for q in "$A_PROMPT" "$B_PROMPT"; do
+W_PROMPT="Add a test case to internal/sem/search_callee_test.go covering an empty callee list"
+C_PROMPT="Add doc comments to the exported functions in internal/termsafe/termsafe.go"
+
+for q in "$A_PROMPT" "$B_PROMPT" "$W_PROMPT" "$C_PROMPT"; do
   printf '  %.60s...\n' "$q"
   START=$(date +%s)
   printf '{"session_id":"warmup","cwd":".","hook_event_name":"UserPromptSubmit","prompt":"%s"}' "$q" \

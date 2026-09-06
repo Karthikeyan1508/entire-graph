@@ -135,3 +135,23 @@ Then prove it end to end, in front of me:
   4. pipe the same payload from the SAME session_id; show that it prints nothing
 
 Do not touch Databricks. Stop when the piped deny works and tell me.
+
+---
+
+1. Make a zero-symbol lease LOUD, not silent. In tower_flightplan.py, when file_flight() returns 0
+   symbols, the additionalContext must say so explicitly, e.g.
+     "TOWER: 0 symbols leased — graph cache is cold. Run scripts/prewarm.sh. You are NOT protected."
+   Fail-open stays; failing open invisibly is what we're removing.
+
+2. Add prewarm to the runbook, not just a comment. scripts/prewarm.sh must run after EVERY commit —
+   you proved commits invalidate the committed-tree cache. Put that line in STATE.md, and add it to
+   whatever demo script exists. Most important: it must run AFTER the 11:40 freeze commit and BEFORE
+   the noon demo, or the first flightplan of the curveball session silently leases nothing.
+
+Then commit the hooks, the check() session_intent fix, and .claude/settings.json as one commit. Note
+in the message: the CUT 3 violation you found and fixed, the measured latency floor with its cause,
+and that prewarm is required post-commit.
+
+Then run the two REAL agent sessions in two terminals. That is the actual C2 gate — the piped test
+was only a rehearsal. The moment the first real deny appears on screen, STOP and record it before
+touching anything.

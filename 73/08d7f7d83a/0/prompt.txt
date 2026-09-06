@@ -1,0 +1,44 @@
+Read TOWER_BUILD_SPEC.md and TOWER_V2_NO_HOMEWORK.md. V2 overrides the spec where they disagree:
+no daemon, no BFS, no subprocess on the hot path.
+
+Note: the spec's §3.1 symbol example and §5.2 co-change calibration reference gorilla/mux. That is
+stale — we guard THIS repo. See ARCHITECTURE.md, "What TOWER guards".
+
+I have never run the Entire CLI before, so I do not know its real output shapes. First, capture them.
+Write and run scripts/recon.sh against THIS repo (run it under Git Bash — this is Windows):
+  entire graph --help                          -> NOTES.md
+  entire graph capabilities                    -> NOTES.md
+  entire graph search --query "semantic search over a repository" --format json --top-k 8
+                                               -> fixtures/search.json + NOTES.md
+  entire graph def --symbol internal/sem/search.go:683 --json
+                                               -> fixtures/def.json + NOTES.md
+       (that line is `func SearchRepository(ctx, repo, providerVersion, query string, options SearchOptions)`)
+  entire graph impact --symbol SearchRepository --depth 2 --json
+                                               -> fixtures/impact.json + NOTES.md
+  entire checkpoint list --json                -> fixtures/checkpoints.json
+
+The command syntax above is a GUESS from the spec. If a command does not exist, find the real one
+from `entire graph --help` and record BOTH the guess and the truth in NOTES.md. If search returns
+nothing, check whether this clone needs an index built first and record that command too.
+On any failure, record the exact error and keep going.
+
+Run it, then TELL ME the real field names before writing a single parser. In particular: how impact
+reports hop distance, and whether def returns line ranges. Do not write tower/ yet.
+
+---
+
+<task-notification>
+<task-id>b9fvbk7m6</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>C:\Users\This PC\AppData\Local\Temp\claude\D--tower-entire-graph\b275a28d-d0c6-4236-b625-86174468ed49\tasks\b9fvbk7m6.output</output-file>
+<status>completed</status>
+<summary>Background command "Run recon script" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>btqs9g3xq</task-id>
+<summary>Monitor event: "Wait for recon.sh background job to finish"</summary>
+<event>RECON_EXIT=0</event>
+</task-notification>

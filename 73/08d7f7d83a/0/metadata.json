@@ -1,0 +1,110 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "7308d7f7d83a",
+  "session_id": "b275a28d-d0c6-4236-b625-86174468ed49",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T05:09:24.5853843Z",
+  "branch": "tower",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    "NOTES.md",
+    "fixtures/capabilities.json",
+    "fixtures/def.json",
+    "fixtures/impact.json",
+    "fixtures/search.json",
+    "scripts/recon.sh"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "38f7f9584781",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 90,
+    "cache_creation_tokens": 158442,
+    "cache_read_tokens": 6264206,
+    "output_tokens": 69922,
+    "api_call_count": 45
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T05:09:24.5155139Z",
+    "agent_lines": 296,
+    "agent_removed": 0,
+    "human_added": 70,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 366,
+    "total_lines_changed": 366,
+    "agent_percentage": 80.87431693989072,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2365,
+      "user_lines_removed": 2365,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      },
+      "user_removed_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 2408,
+      "user_lines_removed": 2365,
+      "agent_lines_added": 225,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "NOTES.md": 34,
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "fixtures/checkpoints.json": 8,
+        "fixtures/impact.json": 1,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      },
+      "user_removed_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 9,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2697,
+      "agent_lines_removed": 2365,
+      "user_added_per_file": {
+        "fixtures/checkpoints.json": 8,
+        "fixtures/impact.json": 1
+      }
+    }
+  ]
+}

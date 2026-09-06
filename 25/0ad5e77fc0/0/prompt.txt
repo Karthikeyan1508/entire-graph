@@ -1,0 +1,41 @@
+You are joining mid-flight with no context, after the noon Curveball. Do not edit anything yet.
+
+1. RECONSTRUCT. Read STATE.md, ARCHITECTURE.md, BUILDATHON.md, NOTES.md, policy.yaml. Run
+   `entire checkpoint list` and inspect the checkpoint on commit 4a671f4 (CP2, tag
+   pre-noon-stable). NOTES.md outranks the spec on any `entire` command syntax.
+   Summarise back in 8 lines: what TOWER is, the four-phase flow, the scoring formula, what is
+   done, what is cut, and the top 3 open risks.
+
+2. THE CURVEBALL — Track 2, "Graph is evidence, not an oracle":
+   - must not present incomplete Graph relationships as certain
+   - must identify when analysis may be partial
+   - must provide a safe fallback or verification path
+   - existing behaviour for fully resolved code must continue to work
+   - must include a test or fixture representing incomplete analysis
+   - users and agents must tell apart: confirmed structural evidence / heuristic or incomplete
+     evidence / claims that require source or test verification
+
+3. BEFORE EDITING ANYTHING, use the graph on OUR OWN code to find every place that consumes
+   relationship, impact or semantic-diff evidence. Tee all output to
+   evidence/curveball-impact.txt:
+     entire graph search --repo . --head --profile full --query "impact set hops halo lease scoring" --top-k 8 --format json
+     entire graph impact --repo . --head --profile full --symbol impact_set --depth 2 --format json
+     entire graph impact --repo . --head --profile full --symbol check --depth 2 --format json
+   That file must exist BEFORE any code change. Graph use after implementation scores in the
+   partial band.
+
+4. THEN STOP and tell me:
+   - which assumption the curveball invalidated, in one sentence
+   - the blast radius: every function that would change
+   - which seam it lands in (adapter / scoring / policy / sink)
+   - whether policy.yaml alone can express any of it
+
+Verify this rather than trusting it: fixtures/search.json and fixtures/impact.json already carry
+`completeness`, `partial_failures` (per-file code / severity / effect_on_semantic_completeness)
+and `warnings`. tower/core.py currently discards all of them.
+
+Do not write code until I say go.
+
+---
+
+exit

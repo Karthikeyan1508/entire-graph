@@ -508,6 +508,14 @@ def file_flight(
     worktree: Optional[str] = None,
 ) -> FlightResult:
     policy = _load_policy()
+    # Refresh the co-change prior from Databricks here -- the slow, once-per-prompt path. Never
+    # from check(), which must stay pure SQL. Fails soft: unreachable Databricks leaves the cache
+    # as-is and separation still works on the structural term alone.
+    try:
+        from . import prior as prior_mod
+        prior_mod.refresh()
+    except Exception:
+        pass
     seed_top_k = int(policy.get("seed_top_k", 3))
     lease_depth = int(policy.get("lease_depth", 2))
     max_symbols = int(policy.get("max_lease_symbols", 300))
@@ -622,8 +630,15 @@ def check(session_id: str, file_path: str, line: Optional[int] = None, repo: str
 
         hops = lease_row["hops"]
         structural = STRUCTURAL_BY_HOPS.get(hops, 0.0)
-        other_file = _other_core_file(conn, lease_row)
-        prior = _lookup_prior(conn, norm_path, other_file)
+        # spec §5.2 pairs the target's file with file(other core symbol) -- but at hops 0 those are
+        # the SAME file, so the lookup degenerated to a self-pair that co-change over distinct pairs
+        # can never contain, pinning the prior to 0.0 exactly where it matters most. best_prior()
+        # scores the target against the other DISTINCT files the lease covers. Pure SQL (CUT 3).
+        from . import prior as prior_mod
+        prior, prior_pair_file = prior_mod.best_prior(conn, norm_path, lease_row["session_id"])
+        if prior <= 0.0:  # fall back to the literal §5.2 pair so behaviour never regresses
+            other_file = _other_core_file(conn, lease_row)
+            prior, prior_pair_file = _lookup_prior(conn, norm_path, other_file), other_file
 
         weights = policy.get("weights", {"structural": 0.65, "prior": 0.35})
         score = round(weights.get("structural", 0.65) * structural + weights.get("prior", 0.35) * prior, 2)

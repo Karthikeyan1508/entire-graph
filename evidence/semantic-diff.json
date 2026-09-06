@@ -1,0 +1,286 @@
+{
+  "base": "pre-noon-stable",
+  "head": "HEAD",
+  "files": [
+    {
+      "path": "fixtures/impact_ambiguous.json",
+      "status": "A",
+      "language": "JSON",
+      "changes": [
+        {
+          "type": "added",
+          "kind": "module",
+          "name": "fixtures/impact_ambiguous.json",
+          "after_start_line": 1,
+          "dependents_count": 0
+        }
+      ]
+    },
+    {
+      "path": "fixtures/impact_partial.json",
+      "status": "A",
+      "language": "JSON",
+      "changes": [
+        {
+          "type": "added",
+          "kind": "module",
+          "name": "fixtures/impact_partial.json",
+          "after_start_line": 1,
+          "dependents_count": 0
+        }
+      ]
+    },
+    {
+      "path": "hooks/tower_flightplan.py",
+      "status": "M",
+      "language": "Python",
+      "changes": [
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "main",
+          "before_start_line": 11,
+          "after_start_line": 11,
+          "dependents_count": 205
+        }
+      ]
+    },
+    {
+      "path": "policy.yaml",
+      "status": "M",
+      "language": "YAML",
+      "changes": [
+        {
+          "type": "body_changed",
+          "kind": "section",
+          "name": "seed_top_k",
+          "before_start_line": 3,
+          "after_start_line": 3,
+          "dependents_count": 2
+        },
+        {
+          "type": "added",
+          "kind": "section",
+          "name": "partial_evidence_floor",
+          "new_signature": "section partial_evidence_floor",
+          "after_start_line": 18,
+          "dependents_count": 1
+        }
+      ]
+    },
+    {
+      "path": "tests/test_core.py",
+      "status": "M",
+      "language": "Python",
+      "changes": [
+        {
+          "type": "signature_changed",
+          "kind": "function",
+          "name": "_seed_lease",
+          "old_signature": "def _seed_lease(session_id, path, hops, symbol_id, via=None, prior=None, prior_other_file=None)",
+          "new_signature": "def _seed_lease(session_id, path, hops, symbol_id, via=None, prior=None, prior_other_file=None, evidence=\"confirmed\", verify_command=None)",
+          "before_start_line": 24,
+          "after_start_line": 25,
+          "dependents_count": 9
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_partial_evidence_on_clear_floors_to_warned",
+          "new_signature": "def test_partial_evidence_on_clear_floors_to_warned(): # hops=2 alone scores 0.23 (cleared, see test_hops2_clears_at_0_23) -- but partial graph # evidence for this lease must raise it to the policy floor, never leave it silently cleared.",
+          "after_start_line": 138,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_partial_evidence_never_downgrades_a_deny",
+          "new_signature": "def test_partial_evidence_never_downgrades_a_deny(): # hops=0 + prior 0.63 scores 0.87 (denied, see test_hops0_with_calibrated_prior_denies_at_0_87) # regardless of evidence tier -- partial evidence only ever raises a decision, never lowers one # that's already stronger. The tier still has to show up so the blocked agent sees it.",
+          "after_start_line": 151,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_unverified_evidence_carries_verify_command",
+          "new_signature": "def test_unverified_evidence_carries_verify_command(): # An ambiguous/unresolved graph match (ex: entire graph impact --symbol check hit # disambiguation_required, see fixtures/impact_ambiguous.json) must say so and hand the agent a # way to check for itself, not silently present a settled-looking hop distance.",
+          "after_start_line": 167,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_evidence_context_flags_the_real_ambiguous_response_as_unverified",
+          "new_signature": "def test_evidence_context_flags_the_real_ambiguous_response_as_unverified(): # fixtures/impact_ambiguous.json is the REAL response captured for # `entire graph impact --symbol check --depth 2` (evidence/curveball-impact.txt) -- # disambiguation_required: true, no focus resolved.",
+          "after_start_line": 185,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_evidence_context_flags_partial_failure_file_as_partial",
+          "new_signature": "def test_evidence_context_flags_partial_failure_file_as_partial(): # fixtures/impact_partial.json is fixtures/impact.json with one real caller endpoint file # (internal/cli/search.go) added to partial_failures.",
+          "after_start_line": 196,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_impact_set_handles_the_real_ambiguous_response_without_crashing",
+          "new_signature": "def test_impact_set_handles_the_real_ambiguous_response_without_crashing(monkeypatch)",
+          "after_start_line": 210,
+          "dependents_count": 0
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "test_impact_set_marks_only_the_degraded_endpoint_as_partial",
+          "new_signature": "def test_impact_set_marks_only_the_degraded_endpoint_as_partial(monkeypatch)",
+          "after_start_line": 221,
+          "dependents_count": 0
+        }
+      ]
+    },
+    {
+      "path": "tower/core.py",
+      "status": "M",
+      "language": "Python",
+      "changes": [
+        {
+          "type": "body_changed",
+          "kind": "class",
+          "name": "SymbolRef",
+          "before_start_line": 99,
+          "after_start_line": 124,
+          "dependents_count": 6
+        },
+        {
+          "type": "body_changed",
+          "kind": "class",
+          "name": "FlightResult",
+          "before_start_line": 109,
+          "after_start_line": 137,
+          "dependents_count": 1
+        },
+        {
+          "type": "body_changed",
+          "kind": "class",
+          "name": "Decision",
+          "before_start_line": 118,
+          "after_start_line": 147,
+          "dependents_count": 4
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "get_connection",
+          "before_start_line": 141,
+          "after_start_line": 173,
+          "dependents_count": 9
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "_migrate_evidence_columns",
+          "new_signature": "def _migrate_evidence_columns(conn: sqlite3.Connection) -\u003e None: # Curveball landed after a real ~/.tower/tower.db already existed on this machine; CREATE # TABLE IF NOT EXISTS does not add columns to a table that's already there, so a pre-Curveball # DB needs these added by hand. Each ALTER is caught independently -- idempotent either way.",
+          "after_start_line": 188,
+          "dependents_count": 1
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "_evidence_context",
+          "new_signature": "def _evidence_context(data: dict) -\u003e dict",
+          "after_start_line": 309,
+          "dependents_count": 4
+        },
+        {
+          "type": "added",
+          "kind": "function",
+          "name": "_evidence_for",
+          "new_signature": "def _evidence_for(file_path: str, symbol_id: Optional[str], ctx: dict) -\u003e tuple[str, str]",
+          "after_start_line": 330,
+          "dependents_count": 5
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "search_symbols",
+          "before_start_line": 260,
+          "after_start_line": 346,
+          "dependents_count": 2
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "impact_set",
+          "before_start_line": 295,
+          "after_start_line": 391,
+          "dependents_count": 4
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "file_flight",
+          "before_start_line": 401,
+          "after_start_line": 502,
+          "dependents_count": 3
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "check",
+          "before_start_line": 498,
+          "after_start_line": 608,
+          "dependents_count": 144
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "render_deny",
+          "before_start_line": 552,
+          "after_start_line": 674,
+          "dependents_count": 4
+        },
+        {
+          "type": "body_changed",
+          "kind": "function",
+          "name": "record_squawk",
+          "before_start_line": 577,
+          "after_start_line": 723,
+          "dependents_count": 1
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "code": "W_UNSUPPORTED_FILE",
+      "severity": "info",
+      "file_path": "evidence/curveball-impact.txt",
+      "effect_on_semantic_completeness": "file skipped; no parser for this file type, so its changes are not analyzed",
+      "detail": "head version has no supported parser"
+    },
+    {
+      "code": "E_FILE_TOO_LARGE",
+      "severity": "warning",
+      "file_path": "internal/sem/grammars/csharp/parser.c",
+      "effect_on_semantic_completeness": "dependent references in this file were not counted because it exceeds max parser input",
+      "detail": "file is 29629301 bytes, above max parser input 4194304 bytes"
+    },
+    {
+      "code": "E_FILE_TOO_LARGE",
+      "severity": "warning",
+      "file_path": "internal/sem/grammars/fsharp/parser.c",
+      "effect_on_semantic_completeness": "dependent references in this file were not counted because it exceeds max parser input",
+      "detail": "file is 31990757 bytes, above max parser input 4194304 bytes"
+    },
+    {
+      "code": "E_FILE_TOO_LARGE",
+      "severity": "warning",
+      "file_path": "internal/sem/pgsql/src/parser.c",
+      "effect_on_semantic_completeness": "dependent references in this file were not counted because it exceeds max parser input",
+      "detail": "file is 14524353 bytes, above max parser input 4194304 bytes"
+    }
+  ]
+}

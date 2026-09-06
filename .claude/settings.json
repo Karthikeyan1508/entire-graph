@@ -101,7 +101,7 @@
           {
             "type": "command",
             "command": "D:/tower/.venv/Scripts/python.exe D:/tower/entire-graph/hooks/tower_flightplan.py",
-            "timeout": 60
+            "timeout": 600
           }
         ]
       }

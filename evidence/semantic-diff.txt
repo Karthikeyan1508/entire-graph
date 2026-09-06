@@ -1,0 +1,57 @@
+# Graph evidence #3 — semantic diff, pre-noon-stable..HEAD
+# entire graph diff --base pre-noon-stable --head HEAD
+# captured 2026-09-06 13:22
+
+Semantic changes pre-noon-stable..HEAD
+
+fixtures/impact_ambiguous.json (JSON)
+  + module fixtures/impact_ambiguous.json added
+
+fixtures/impact_partial.json (JSON)
+  + module fixtures/impact_partial.json added
+
+hooks/tower_flightplan.py (Python)
+  ~ function main body changed (205 dependents)
+
+policy.yaml (YAML)
+  ~ section seed_top_k body changed (2 dependents)
+  + section partial_evidence_floor added
+
+tests/test_core.py (Python)
+  ~ function _seed_lease signature changed (9 dependents)
+  + function test_partial_evidence_on_clear_floors_to_warned added
+  + function test_partial_evidence_never_downgrades_a_deny added
+  + function test_unverified_evidence_carries_verify_command added
+  + function test_evidence_context_flags_the_real_ambiguous_response_as_unverified added
+  + function test_evidence_context_flags_partial_failure_file_as_partial added
+  + function test_impact_set_handles_the_real_ambiguous_response_without_crashing added
+  + function test_impact_set_marks_only_the_degraded_endpoint_as_partial added
+
+tower/core.py (Python)
+  ~ class SymbolRef body changed (6 dependents)
+  ~ class FlightResult body changed (1 dependent)
+  ~ class Decision body changed (4 dependents)
+  ~ function get_connection body changed (9 dependents)
+  + function _migrate_evidence_columns added
+  + function _evidence_context added
+  + function _evidence_for added
+  ~ function search_symbols body changed (2 dependents)
+  ~ function impact_set body changed (4 dependents)
+  ~ function file_flight body changed (3 dependents)
+  ~ function check body changed (144 dependents)
+  ~ function render_deny body changed (4 dependents)
+  ~ function record_squawk body changed (1 dependent)
+
+Warnings
+  ! W_UNSUPPORTED_FILE evidence/curveball-impact.txt
+    file skipped; no parser for this file type, so its changes are not analyzed
+    head version has no supported parser
+  ! E_FILE_TOO_LARGE internal/sem/grammars/csharp/parser.c
+    dependent references in this file were not counted because it exceeds max parser input
+    file is 29629301 bytes, above max parser input 4194304 bytes
+  ! E_FILE_TOO_LARGE internal/sem/grammars/fsharp/parser.c
+    dependent references in this file were not counted because it exceeds max parser input
+    file is 31990757 bytes, above max parser input 4194304 bytes
+  ! E_FILE_TOO_LARGE internal/sem/pgsql/src/parser.c
+    dependent references in this file were not counted because it exceeds max parser input
+    file is 14524353 bytes, above max parser input 4194304 bytes

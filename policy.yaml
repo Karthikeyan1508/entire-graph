@@ -1,8 +1,6 @@
 separation_depth: 2          # max graph hops that still counts as a conflict
 lease_depth: 2                # impact depth used when filing a flight plan
-seed_top_k: 1                  # TEMPORARY (13:20): impact runs once per seed and a cold
-                               # impact is 13-45s, so 3 seeds overran the 60s hook limit on every
-                               # novel prompt. RESTORE TO 3 BEFORE THE FINAL DEMO.
+seed_top_k: 3                  # restored for the demo
 max_lease_symbols: 300
 lease_ttl_minutes: 60          # was 20: a real agent session spends 10+ min thinking before
                                # it edits, and the lease expired mid-test. 60 covers a demo.

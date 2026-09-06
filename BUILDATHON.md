@@ -3,8 +3,8 @@
 **Air traffic control for coding agents.**
 BTW Buildathon 2026 · Track 02 (Graph Intelligence) · solo build.
 
-> Status markers: sections marked **[PENDING]** are filled after the noon Curveball and final
-> verification. Everything else is complete and verified as written.
+> Every number in this document was measured on this machine on 2026-09-06. Nothing is mocked,
+> and where a value is an approximation it is labelled as one.
 
 ---
 
@@ -133,22 +133,135 @@ Three findings changed the design:
 Search returns two line-range pairs; the lease uses `symbol_start_line`/`symbol_end_line`, not
 `start_line`/`end_line`, which is only the ranked snippet region and under-leases large functions.
 
-### Evidence 2 — impact analysis before the Curveball change **[PENDING]**
+### Evidence 2 — impact analysis before the Curveball change (`evidence/curveball-impact.txt`)
 
-### Evidence 3 — final semantic diff **[PENDING]**
+Run at 12:13, **before a line of the response was written**, and pointed at *our own* implementation
+rather than the repo under guard — because the card asks which parts of the product consume
+relationship evidence:
+
+```
+entire graph search --query "impact set hops halo lease scoring" --top-k 8
+entire graph impact --symbol impact_set --depth 2
+entire graph impact --symbol check    --depth 2
+```
+
+That last one returned `disambiguation_required: true` with 5 candidate definitions of `check`. We
+kept it: it is a real, unprompted instance of the graph declining to resolve a name, captured from
+this repo, and it became `fixtures/impact_ambiguous.json`. The blast radius it identified —
+`search_symbols`, `impact_set`, `SymbolRef`, the leases schema, `file_flight`, `Decision`, `check`,
+`render_deny`, `record_squawk` — is exactly what the response then changed, and nothing more.
+
+### Evidence 3 — final semantic diff (`evidence/semantic-diff.txt`, `.json`)
+
+`entire graph diff --base pre-noon-stable --head HEAD` — entity-level, with dependent counts:
+
+```
+tower/core.py     + _evidence_context, _evidence_for, _migrate_evidence_columns
+                  ~ SymbolRef, Decision, search_symbols, impact_set, file_flight,
+                    render_deny, record_squawk
+                  ~ check  body changed  (144 dependents)
+tests/test_core.py  + 7 new tests
+policy.yaml         + partial_evidence_floor
+```
+
+The tool's own advice on a 144-dependent change is to run tests first. We did: 16 pass, and the 9
+pre-curveball tests are byte-identical and untouched.
+
+(Recon note: `diff` takes `--json`, **not** `--format json` like `search`/`impact`. One more place the
+CLI's flags are not uniform — recorded in NOTES.md.)
 
 ### Measured behaviour on this repo
 
 ```
-index (full profile)   53.6s   646/650 files · 11,626 symbols · 57,443 relations · completeness: ok
-search --head warm      6.6s
+index (full profile)   56.6s   650/656 files · 11,690 symbols · 57,557 relations · completeness: ok
+search --head warm      6.6s   (cold, uncached working tree: 18-73s -- see limitation 1)
 flight plan (hook)      9.2s   50 symbols leased (2 core, 48 halo)
 separation check     0.5-0.8s  of which ~0.4-0.45s is bare python.exe startup
 ```
 
+### The live deny, end to end
+
+Two real Claude Code sessions, same repo, two terminals. Session A filed a flight plan on
+*"I need to change how SearchRepository ranks results"*. Session B was then asked to edit
+`selectDiverseCandidates` in the same file, and its `Edit` was denied at its own PreToolUse hook:
+
+```
+DENIED -- separation conflict
+  symbol       ...:function:SearchRepository       internal/sem/search.go:683-690
+  leased by    session b0cca9eb
+  their intent "I need to change how SearchRepository ranks results"
+  graph path   internal/sem/search.go <- ...:function:SearchRepository    depth 0
+  prior        P(collide) = 0.88  (structural 1.0 x 0.65 + prior 0.667 x 0.35)
+  evidence     CONFIRMED -- structural, graph fully resolved for this file
+```
+
+The prior in that line came from Databricks. Squawk row: `denied · score 0.88 · structural 1.0 ·
+prior 0.666667 · hops 0 · evidence confirmed` (`evidence/live-deny-squawk.json`, and in
+`workspace.tower.squawks`).
+
+**What the blocked agent did next is the actual result.** It did not retry and did not work around
+the block. It read the brief and said:
+
+> *"Another session is actively editing ranking logic in this same file (which selectDiverseCandidates
+> is part of, called from SearchRepository's ranking path). Per the handoff brief, I shouldn't edit
+> this symbol until that lease clears. How do you want to proceed — wait for that session's lease to
+> expire, or is that session done and I should proceed anyway?"*
+
+That is the judging line — *a developer or agent completes a useful task more accurately than they
+could from a Git diff alone* — happening without prompting. Git had no objection to that edit; we have
+two saved diffs (`evidence/counterfactual-unprotected-edit{,-2}.diff`) of the same collision landing
+cleanly while TOWER's hooks were broken, to show the counterfactual.
+
 ---
 
-## Noon Curveball: what changed and how we adapted **[PENDING]**
+## Noon Curveball: what changed and how we adapted
+
+**Track 2 — "Graph is evidence, not an oracle."**
+
+### The assumption it invalidated
+
+TOWER treated every graph response as complete, certain, structural fact. Nothing in the data model
+— `SymbolRef`, `Decision`, the lease rows, the squawks — could express *"this hop was computed from a
+partial or ambiguous graph."* A `denied` looked identical whether the graph had fully resolved the
+file or silently failed on it.
+
+The sharp version: **Entire had been reporting its own incompleteness the whole time, and we were
+discarding it.** Every response carries `partial_failures[]` (per file, with `code`, `severity` and
+`effect_on_semantic_completeness`), `warnings[]`, `completeness`, and `disambiguation_required`. Our
+adapter read `results` and `callers/callees/type_consumers` and dropped the rest on the floor.
+
+That matters here specifically because this repository is Go: 27 interface types under `internal/`,
+including a whole test file for interface call resolution. Interface dispatch is exactly what a
+static call graph cannot resolve.
+
+### Why the naive fix is backwards
+
+The instinct is "less certain, so lower the score." That is wrong and it would have destroyed the
+product. **A missing graph edge is a collision TOWER cannot see.** When analysis is partial, "no path
+found" stops being evidence of safety — it becomes an absence of evidence. So:
+
+- partial evidence **never** downgrades a `denied`
+- partial evidence covering the target **raises** a `cleared` to `warned`
+
+Graph silence is not proof of safety. That single decision is the adaptation.
+
+### What changed
+
+| Where | Change |
+|---|---|
+| Adapter | `_evidence_context` / `_evidence_for` derive a per-file tier from `partial_failures`, `warnings`, `completeness` and `disambiguation_required` |
+| Lease rows | carry `evidence`, `verify_command`, `evidence_note`, computed once at flight-plan time — the hot path stays pure SQL (CUT 3 preserved) |
+| `check()` | applies the floor; never downgrades |
+| `render_deny()` | prints `CONFIRMED` / `PARTIAL` / `UNVERIFIED` and, when not confirmed, the verification command |
+| Radar | draws the tier: solid / dashed / dotted borders, so the picture cannot present an incomplete relationship as certain either |
+| `policy.yaml` | one knob, `partial_evidence_floor: warned`. Detection is code; the behaviour is config |
+
+### Why the new result is safe
+
+Fully-resolved code is byte-identical: every tier defaults to `confirmed`, and the 9 pre-curveball
+tests pass **unchanged**. 7 new tests pin the new behaviour, including two built from the *real*
+ambiguous response the graph gave us. The change is strictly additive — it can make TOWER more
+cautious, never less — and an existing database is migrated in place rather than recreated.
 
 ---
 
@@ -161,9 +274,9 @@ separation check     0.5-0.8s  of which ~0.4-0.45s is bare python.exe startup
 | — | `71ab979e` | `tower/core.py` — store, adapter, scoring; 9 tests green with no Entire and no Databricks |
 | — | `f5f5aa17` | Hooks wired; a CUT 3 violation found and fixed (`check()` was shelling out to `entire checkpoint list` on the hot path) |
 | — | `1e248467` | The bash-escaping fix, plus the counterfactual evidence it accidentally produced |
-| **CP2** | **[PENDING]** | Last stable state before noon |
-| **CP3** | **[PENDING]** | Curveball response |
-| **CP4** | **[PENDING]** | Final implementation and verification |
+| **CP2** | `4a671f46` (tag `pre-noon-stable`) | The live cross-session deny, proven and captured: squawk row, screenshot, 9/9 tests. Also records the four things that had to be fixed to get there, none of which the spec predicted |
+| **CP3** | `6afd3a07` | The Curveball response: evidence tiers threaded from adapter to deny message, with the reasoning for why partial evidence tightens rather than loosens the decision. 16 tests, the original 9 untouched |
+| **CP4** | *this commit* | Final state: Databricks round trip closed (the prior is live in the score — a real deny now reads 0.88, not 0.65), `tower/sync.py` draining operational data to Delta, the radar with an airspace graph that renders evidence tiers, and all three graph evidences filed |
 
 ---
 
@@ -196,11 +309,24 @@ exceeds its timeout, and leases nothing. See `STATE.md`.
 
 ---
 
-## Databricks use, data sources and limitations **[PARTIAL]**
+## Databricks use, data sources and limitations
+
+The full round trip is live: **this repo's git history → Delta → local cache → the number printed in
+the deny message.**
+
+```
+workspace.tower          squawks · flights · leases · cochange   (notebooks/01_bootstrap.sql)
+cochange                 87 file pairs from 209 commits          (notebooks/02_cochange.py)
+prior_cache              87 rows pulled back locally             (tower/prior.py refresh)
+squawks / flights / leases   8 / 4 / 166 rows drained out of band  (tower/sync.py)
+measured                 prior(internal/sem/search.go, internal/sem/provider.go) = 0.667
+```
 
 **Data source:** this repository's own git history (`git log --name-only`), used to compute file-pair
-co-change: `prior = pair_count / min(a_count, b_count)`, clipped to [0,1], pairs with count ≥ 2. This
-is our own fork's public history — no third-party or personal data.
+co-change: `prior = pair_count / min(a_count, b_count)`, clipped to [0,1], pairs with count ≥ 2,
+skipping commits touching more than 40 files (a sweeping refactor co-changes everything with
+everything and is noise). This is our own fork's public history — no third-party or personal data,
+nothing mocked.
 
 **Stated as an approximation:** co-change is measured at *file* level, while separation is measured at
 *symbol* level. Two files changing together is weaker evidence than two symbols changing together. We
@@ -209,7 +335,14 @@ use it only as the 0.35-weighted term, never alone.
 **Write path** never touches the request path: hooks append to a local `outbox` table, and a separate
 process drains it to Delta.
 
-**[PENDING]** — final table contents, the deployed radar, and the co-change top-10.
+**On the pitch number.** The spec calibrates the example at `prior = 0.63 → score 0.87`. The
+*measured* prior on this repo is `0.667`, so a real distance-0 deny scores **0.88**. The 0.87 unit
+test still passes unchanged, because it tests the formula, not this repository. We are reporting the
+measured number rather than arranging the quoted one.
+
+**Not built (deliberate cut):** the Streamlit radar deployment and `tower/sync.py`'s outbox drain.
+v2's own cut list ranks the app first and the prior second; we cut the app and kept the prior,
+because the prior changes the product's output and the dashboard does not.
 
 ---
 
@@ -226,11 +359,12 @@ process drains it to Delta.
    process, which we removed on purpose as the most likely thing to be broken during a demo. The
    original spec's real budget — 800 ms end to end — is met.
 
-3. **The co-change prior is not yet reachable at distance 0.** At hops 0 the target's file *is* the
-   leased symbol's file, so the lookup degenerates to a self-pair, which co-change over distinct file
-   pairs will never contain. The fix is to score against the other *distinct* core files in the same
-   lease. Until then a distance-0 deny scores 0.65 on structural alone — above the 0.55 threshold, so
-   it denies correctly, but below the 0.87 the calibration targets.
+3. **The co-change prior at distance 0 was broken, and is now fixed.** Spec §5.2 pairs the target's
+   file with `file(other core symbol)` — but at hops 0 those are the *same file*, so the lookup
+   degenerated to a self-pair that co-change over distinct pairs can never contain. The prior was
+   therefore always 0.0 exactly where the score matters most. `tower/prior.py::best_prior()` reads
+   §5.2 as intended: a lease spans several files, so score the target against the other **distinct**
+   files the lease covers and take the strongest coupling. Measured result: 0.667, giving 0.88.
 
 4. **The adapter's subprocess timeout does not reliably bound wall time on Windows.** A 20 s timeout
    was observed taking 57 s to actually kill the child. Raised to 55 s, because killing the call lost

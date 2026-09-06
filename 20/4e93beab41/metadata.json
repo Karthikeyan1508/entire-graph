@@ -3,7 +3,7 @@
   "checkpoint_id": "204e93beab41",
   "strategy": "manual-commit",
   "branch": "tower",
-  "checkpoints_count": 2,
+  "checkpoints_count": 3,
   "files_touched": [
     "BUILDATHON.md",
     "policy.yaml",
@@ -23,13 +23,20 @@
       "compact_transcript": "/20/4e93beab41/1/transcript.jsonl",
       "content_hash": "/20/4e93beab41/1/content_hash.txt",
       "prompt": "/20/4e93beab41/1/prompt.txt"
+    },
+    {
+      "metadata": "/20/4e93beab41/2/metadata.json",
+      "transcript": "/20/4e93beab41/2/full.jsonl",
+      "compact_transcript": "/20/4e93beab41/2/transcript.jsonl",
+      "content_hash": "/20/4e93beab41/2/content_hash.txt",
+      "prompt": "/20/4e93beab41/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 218,
-    "cache_creation_tokens": 193261,
-    "cache_read_tokens": 13223627,
-    "output_tokens": 70730,
-    "api_call_count": 109
+    "input_tokens": 234,
+    "cache_creation_tokens": 223088,
+    "cache_read_tokens": 13727176,
+    "output_tokens": 73712,
+    "api_call_count": 117
   }
 }

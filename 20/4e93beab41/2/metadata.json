@@ -1,0 +1,81 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "204e93beab41",
+  "session_id": "b0cca9eb-8e58-4839-ac39-321817e6744f",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T08:11:59.0636695Z",
+  "branch": "tower",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "BUILDATHON.md",
+    "policy.yaml"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "faf70a48a759",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 29827,
+    "cache_read_tokens": 503549,
+    "output_tokens": 2982,
+    "api_call_count": 8
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T08:11:58.9725971Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 483,
+    "human_removed": 273,
+    "total_committed": 0,
+    "total_lines_changed": 767,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 3725,
+      "user_lines_removed": 2755,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.json": 115,
+        ".codex/hooks.json": 7,
+        "BUILDATHON.md": 348,
+        "app/app.py": 196,
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "evidence/semantic-diff.json": 286,
+        "evidence/semantic-diff.txt": 57,
+        "notebooks/01_bootstrap.sql": 64,
+        "notebooks/02_cochange.py": 141,
+        "policy.yaml": 18,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107,
+        "tower/prior.py": 128
+      },
+      "user_removed_per_file": {
+        ".claude/settings.json": 115,
+        ".codex/hooks.json": 7,
+        "BUILDATHON.md": 248,
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "policy.yaml": 20,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    }
+  ]
+}

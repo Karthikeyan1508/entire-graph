@@ -1,0 +1,107 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "64c38e62d536",
+  "session_id": "2444c036-41ad-40b4-bbff-45ecbfe5be55",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T06:23:58.8991391Z",
+  "branch": "tower",
+  "checkpoints_count": 3,
+  "save_step_count": 3,
+  "files_touched": [
+    "BUILDATHON.md",
+    "policy.yaml"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "39f4b3375863",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 16,
+    "cache_creation_tokens": 38296,
+    "cache_read_tokens": 555902,
+    "output_tokens": 3917,
+    "api_call_count": 8
+  },
+  "session_metrics": {
+    "turn_count": 3
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T06:23:58.8282899Z",
+    "agent_lines": 246,
+    "agent_removed": 0,
+    "human_added": 65,
+    "human_modified": 2,
+    "human_removed": 0,
+    "total_committed": 313,
+    "total_lines_changed": 313,
+    "agent_percentage": 78.59424920127796,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2437,
+      "user_lines_removed": 2366,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "STATE.md": 69,
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "policy.yaml": 3,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      },
+      "user_removed_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "policy.yaml": 1,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 2367,
+      "user_lines_removed": 2366,
+      "agent_lines_added": 72,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "policy.yaml": 2,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      },
+      "user_removed_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "policy.yaml": 1,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 42,
+      "user_lines_removed": 0,
+      "agent_lines_added": 2687,
+      "agent_lines_removed": 2367,
+      "user_added_per_file": {
+        "evidence/counterfactual-unprotected-edit-2.diff": 42
+      }
+    }
+  ]
+}

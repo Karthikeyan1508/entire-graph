@@ -1,0 +1,9 @@
+I need to change how SearchRepository ranks results
+
+---
+
+Also check how sortSearchCandidates breaks ties
+
+---
+
+I need to change how SearchRepository ranks results

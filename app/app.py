@@ -36,16 +36,28 @@ def _creds() -> dict:
     return out
 
 
+def _connect_delta():
+    """Local dev uses ~/.tower/databricks.env; inside a Databricks App there is no such file and no
+    token — the app's own service principal authenticates through the SDK credential chain."""
+    from databricks import sql
+    e = _creds()
+    http_path = e.get("DATABRICKS_HTTP_PATH") or os.environ.get("DATABRICKS_HTTP_PATH", "")
+    if e.get("DATABRICKS_TOKEN"):
+        return sql.connect(server_hostname=e["DATABRICKS_HOST"].replace("https://", ""),
+                           http_path=http_path, access_token=e["DATABRICKS_TOKEN"])
+    from databricks.sdk.core import Config
+    cfg = Config()
+    if not http_path and os.environ.get("DATABRICKS_WAREHOUSE_ID"):
+        http_path = f"/sql/1.0/warehouses/{os.environ['DATABRICKS_WAREHOUSE_ID']}"
+    return sql.connect(server_hostname=cfg.host.replace("https://", ""), http_path=http_path,
+                       credentials_provider=lambda: cfg.authenticate)
+
+
 @st.cache_data(ttl=10)
 def load() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, str]:
     if not LOCAL:
         try:
-            from databricks import sql
-            e = _creds()
-            with sql.connect(
-                server_hostname=e["DATABRICKS_HOST"].replace("https://", ""),
-                http_path=e["DATABRICKS_HTTP_PATH"], access_token=e["DATABRICKS_TOKEN"],
-            ) as c:
+            with _connect_delta() as c:
                 q = lambda s: pd.read_sql(s, c)  # noqa: E731
                 return (q("SELECT * FROM workspace.tower.squawks ORDER BY ts DESC LIMIT 50"),
                         q("SELECT * FROM workspace.tower.flights ORDER BY filed_at DESC LIMIT 20"),
@@ -114,6 +126,10 @@ def _short(symbol_id: str) -> str:
 
 
 def lease_dot(session_id: str, denied_symbols: set[str], limit: int = 26) -> str:
+    # Lease rows live in the local SQLite store. Inside a Databricks App there is no such file, so
+    # this degrades to "no lease to draw" rather than failing the page.
+    if not DB.exists():
+        return ""
     conn = sqlite3.connect(str(DB))
     conn.row_factory = sqlite3.Row
     rows = conn.execute(
@@ -169,7 +185,7 @@ _denied_syms = set(squawks.loc[squawks["decision"] == "denied", "target_symbol"]
     if not squawks.empty and "target_symbol" in squawks else set()
 
 _lease_sessions = []
-if not flights.empty and "session_id" in flights:
+if not flights.empty and "session_id" in flights and DB.exists():
     conn_l = sqlite3.connect(str(DB))
     for sid in flights["session_id"]:
         n = conn_l.execute(
@@ -180,7 +196,8 @@ if not flights.empty and "session_id" in flights:
     conn_l.close()
 
 if not _lease_sessions:
-    st.info("No lease recorded yet. File a flight plan and the airspace appears here.")
+    st.info("No local lease store reachable from here — the airspace graph renders where TOWER runs. "
+            "Delta tables above are live.")
 else:
     pick = st.selectbox(
         "Lease", _lease_sessions,

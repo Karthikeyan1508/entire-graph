@@ -82,7 +82,7 @@ SessionEnd       ──► hooks/tower_session.py           release leases
 
 tower/core.py    store + adapter + scoring, one module
 tower/sync.py    drains an outbox table to Delta, out of band
-app/app.py       Streamlit radar
+app/app.py       Streamlit radar (deployed as a Databricks App)
 ```
 
 **The load-bearing design decision** is that all expensive work happens once per *prompt*, never per
@@ -340,9 +340,16 @@ process drains it to Delta.
 test still passes unchanged, because it tests the formula, not this repository. We are reporting the
 measured number rather than arranging the quoted one.
 
-**Not built (deliberate cut):** the Streamlit radar deployment and `tower/sync.py`'s outbox drain.
-v2's own cut list ranks the app first and the prior second; we cut the app and kept the prior,
-because the prior changes the product's output and the dashboard does not.
+**Deployed as a Databricks App:** `https://tower-radar-7474647544184665.aws.databricksapps.com`
+— the Streamlit radar running on Databricks compute, reading `workspace.tower` through a SQL
+warehouse attached as an app resource, authenticated as its own service principal
+(`3464f52d-f52a-4b22-89ae-6f44fb271e85`) with `USE CATALOG` / `USE SCHEMA` / `SELECT` granted on the
+schema — not with a personal token. The same file runs locally against SQLite via `TOWER_SOURCE=local`,
+which is the demo fallback if the warehouse is cold.
+
+Ordering note: this was the **last** thing built, after the prior was live in the score. v2's cut list
+ranks the dashboard first to drop, and we held to that — the app only got built because everything
+that changes the product's behaviour was already finished and pushed.
 
 ---
 

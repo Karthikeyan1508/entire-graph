@@ -277,16 +277,23 @@ cautious, never less — and an existing database is migrated in place rather th
 
 ## Checkpoint links and what each checkpoint proves
 
+Repository: **https://github.com/Karthikeyan1508/entire-graph** · branch `tower` · Entire portal: **https://entire.io/gh/Karthikeyan1508/entire-graph**
+
+Each commit below ends with its `Entire-Checkpoint:` trailer, which is what binds the commit to
+the agent session that produced it. **CP1 is a commit only** — it was made from a session that
+started before `entire enable` ran in this repo, so no checkpoint attached to it. CP2, CP3 and
+CP4 each carry one, and the branch holds 11 checkpoints in total across the working sessions.
+
 | | Commit | What it proves |
 |---|---|---|
-| **CP1** | `f872c0ac` | Architecture fixed before code: the repo decision with its rejected alternatives, the v2 cuts, and five open risks — one of which (Windows hook invocation) is exactly what later failed |
-| — | `ea248e2c` | Graph evidence #1: real CLI shapes captured before a parser was written |
-| — | `71ab979e` | `tower/core.py` — store, adapter, scoring; 9 tests green with no Entire and no Databricks |
-| — | `f5f5aa17` | Hooks wired; a CUT 3 violation found and fixed (`check()` was shelling out to `entire checkpoint list` on the hot path) |
-| — | `1e248467` | The bash-escaping fix, plus the counterfactual evidence it accidentally produced |
-| **CP2** | `4a671f46` (tag `pre-noon-stable`) | The live cross-session deny, proven and captured: squawk row, screenshot, 9/9 tests. Also records the four things that had to be fixed to get there, none of which we had anticipated |
-| **CP3** | `6afd3a07` | The Curveball response: evidence tiers threaded from adapter to deny message, with the reasoning for why partial evidence tightens rather than loosens the decision. 16 tests, the original 9 untouched |
-| **CP4** | *this commit* | Final state: Databricks round trip closed (the prior is live in the score — a real deny now reads 0.88, not 0.65), `tower/sync.py` draining operational data to Delta, the radar with an airspace graph that renders evidence tiers, and all three graph evidences filed |
+| **CP1** | [`f872c0ac`](https://github.com/Karthikeyan1508/entire-graph/commit/f872c0ac) | Architecture fixed before code: the repo decision with its rejected alternatives, the v2 cuts, and five open risks — one of which (Windows hook invocation) is exactly what later failed |
+| — | [`ea248e2c`](https://github.com/Karthikeyan1508/entire-graph/commit/ea248e2c) | Graph evidence #1: real CLI shapes captured before a parser was written |
+| — | [`71ab979e`](https://github.com/Karthikeyan1508/entire-graph/commit/71ab979e) | `tower/core.py` — store, adapter, scoring; 9 tests green with no Entire and no Databricks |
+| — | [`f5f5aa17`](https://github.com/Karthikeyan1508/entire-graph/commit/f5f5aa17) | Hooks wired; a CUT 3 violation found and fixed (`check()` was shelling out to `entire checkpoint list` on the hot path) |
+| — | [`1e248467`](https://github.com/Karthikeyan1508/entire-graph/commit/1e248467) | The bash-escaping fix, plus the counterfactual evidence it accidentally produced |
+| **CP2** | [`4a671f46`](https://github.com/Karthikeyan1508/entire-graph/commit/4a671f46)<br>checkpoint `64c38e62d536`<br>tag `pre-noon-stable` | The live cross-session deny, proven and captured: squawk row, screenshot, 9/9 tests. Also records the four things that had to be fixed to get there, none of which we had anticipated |
+| **CP3** | [`6afd3a07`](https://github.com/Karthikeyan1508/entire-graph/commit/6afd3a07)<br>checkpoint `61c5896d8245` | The Curveball response: evidence tiers threaded from adapter to deny message, with the reasoning for why partial evidence tightens rather than loosens the decision. 16 tests, the original 9 untouched |
+| **CP4** | [`b81c9bb7`](https://github.com/Karthikeyan1508/entire-graph/commit/b81c9bb7)<br>checkpoint `204e93beab41` | Final state: Databricks round trip closed (the prior is live in the score — a real deny now reads 0.88, not 0.65), `tower/sync.py` draining operational data to Delta, the radar with an airspace graph that renders evidence tiers, and all three graph evidences filed |
 
 ---
 

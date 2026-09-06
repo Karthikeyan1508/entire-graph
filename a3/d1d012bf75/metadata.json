@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "a3d1d012bf75",
+  "strategy": "manual-commit",
+  "branch": "tower",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "evidence/counterfactual-README.md",
+    "evidence/counterfactual-unprotected-edit.diff"
+  ],
+  "sessions": [
+    {
+      "metadata": "/a3/d1d012bf75/0/metadata.json",
+      "transcript": "/a3/d1d012bf75/0/full.jsonl",
+      "compact_transcript": "/a3/d1d012bf75/0/transcript.jsonl",
+      "content_hash": "/a3/d1d012bf75/0/content_hash.txt",
+      "prompt": "/a3/d1d012bf75/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 16183,
+    "cache_read_tokens": 43492,
+    "output_tokens": 681,
+    "api_call_count": 1
+  }
+}

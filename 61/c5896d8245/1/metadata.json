@@ -1,0 +1,92 @@
+{
+  "cli_version": "0.10.5",
+  "checkpoint_id": "61c5896d8245",
+  "session_id": "c2e81190-9358-416f-9893-6881a383fa72",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-06T07:49:52.2486425Z",
+  "branch": "tower",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "evidence/curveball-impact.txt"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "0a71f2b52e1d",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 62,
+    "cache_creation_tokens": 189068,
+    "cache_read_tokens": 5209556,
+    "output_tokens": 78359,
+    "api_call_count": 31
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-06T07:49:52.0807673Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 34,
+    "human_modified": 610,
+    "human_removed": 0,
+    "total_committed": 42,
+    "total_lines_changed": 657,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 2570,
+      "user_lines_removed": 2365,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "notebooks/01_bootstrap.sql": 64,
+        "notebooks/02_cochange.py": 141,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      },
+      "user_removed_per_file": {
+        "bench/memory/ci/summarize_run.py": 642,
+        "bench/memory/run_locomo.sh": 61,
+        "scripts/create-nightly-tag.sh": 36,
+        "scripts/entire-graph-statusline.sh": 547,
+        "scripts/entire-graph-statusline_test.sh": 957,
+        "scripts/install-local.sh": 15,
+        "scripts/release.sh": 107
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1162,
+      "user_lines_removed": 980,
+      "agent_lines_added": 2578,
+      "agent_lines_removed": 2365,
+      "user_added_per_file": {
+        ".claude/settings.json": 115,
+        ".codex/hooks.json": 7,
+        "BUILDATHON.md": 268,
+        "fixtures/impact_ambiguous.json": 1,
+        "fixtures/impact_partial.json": 1,
+        "policy.yaml": 3,
+        "tower/core.py": 639,
+        "tower/prior.py": 128
+      },
+      "user_removed_per_file": {
+        ".claude/settings.json": 115,
+        ".codex/hooks.json": 7,
+        "BUILDATHON.md": 248,
+        "policy.yaml": 1,
+        "tower/core.py": 609
+      }
+    }
+  ]
+}

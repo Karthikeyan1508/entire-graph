@@ -96,3 +96,42 @@ Then tests/test_core.py with TOWER_FIXTURES=1 proving:
 Run pytest and show me the table.
 
 Separately, commit scripts/recon.sh + NOTES.md + fixtures/ now — that is graph evidence #1.
+
+---
+
+First: commit tower/core.py, tests/, policy.yaml, scripts/prewarm.sh as one commit. Note in the message
+the fnmatch path-awareness bug, the TOWER_DB_PATH test override, and that hops-0 prior is a known gap
+(self-pair lookup) to be fixed in Phase D.
+
+Then build the three V2 hooks. Each reads stdin JSON, wraps EVERYTHING in try/except, always sys.exit(0).
+
+WINDOWS — the spec's `python3 $CLAUDE_PROJECT_DIR/hooks/x.py` will not run here:
+  - interpreter is the absolute venv path: D:\tower\.venv\Scripts\python.exe
+  - inside settings.json the backslashes must be JSON-escaped: D:\\tower\\.venv\\Scripts\\python.exe
+  - the hook must put the repo root on sys.path before `import tower` — the venv lives OUTSIDE the repo
+  - hooks must NOT set TOWER_DB_PATH; they use the real ~/.tower/tower.db
+
+hooks/tower_flightplan.py  UserPromptSubmit, timeout 60
+    file_flight(), then print additionalContext naming lease size and other active sessions
+hooks/tower_separation.py  PreToolUse "Edit|Write|MultiEdit", timeout 10
+    check(); on deny print EXACTLY
+    {"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"<render_deny output>"}}
+    on cleared OR warned print NOTHING
+hooks/tower_session.py     SessionEnd -> release leases, print nothing
+
+REGISTER BY MERGING into .claude/settings.json. Show me the file before and after. Three things are
+already in there and none may break:
+  - Entire's hooks on UserPromptSubmit, SessionEnd, PreToolUse(matcher "Agent") and 4 other events
+  - upstream's "permissions": {"deny": ["Read(./.entire/metadata/**)"]}
+  - the Codex hooks block
+Your PreToolUse entry is a NEW element appended to the existing PreToolUse array, matcher
+"Edit|Write|MultiEdit". Validate the file parses as JSON before you finish.
+
+Then prove it end to end, in front of me:
+  1. pipe a fake UserPromptSubmit payload into tower_flightplan.py; show lease row count and wall time
+  2. pipe a fake PreToolUse payload for a file in that lease from a DIFFERENT session_id;
+     show me the deny JSON on stdout
+  3. print the measured wall time of step 2 — it must be under 200 ms
+  4. pipe the same payload from the SAME session_id; show that it prints nothing
+
+Do not touch Databricks. Stop when the piped deny works and tell me.
